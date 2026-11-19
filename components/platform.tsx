@@ -5,9 +5,12 @@ import brandMark from '@/app/icon.png';
 import chooseDocuments from '@/assets/how-choose-documents.webp';
 import processDocuments from '@/assets/how-process-documents.webp';
 import receiveDocuments from '@/assets/how-receive-documents.webp';
+import heroPhoto from '@/assets/hero-photo.webp';
+import heroDocuments from '@/assets/hero-documents.webp';
+import heroNumberPlate from '@/assets/hero-number-plate.webp';
 import BrandLogo from '@/components/brand-logo';
 import { useEffect, useRef, useState, type FormEvent } from 'react';
-import { ArrowRight, ArrowUpRight, Check, CheckCheck, ChevronDown, ChevronLeft, ChevronRight, FileText, ShieldCheck, CarFront, Truck, UserRound, UsersRound, ShoppingCart, Menu, X, Plus, Minus, MapPin, Mail, MessageCircle, LockKeyhole, UploadCloud, Search, CircleHelp, Building2, Sparkles, PackageCheck, LoaderCircle, CheckCircle2, Download } from 'lucide-react';
+import { ArrowRight, ArrowUpRight, Check, CheckCheck, ChevronDown, ChevronLeft, ChevronRight, FileText, ShieldCheck, CarFront, Truck, UserRound, UsersRound, ShoppingCart, Menu, X, Plus, Minus, MapPin, Mail, MessageCircle, Headset, PhoneCall, LockKeyhole, UploadCloud, Search, CircleHelp, Building2, Sparkles, PackageCheck, LoaderCircle, CheckCircle2, Download } from 'lucide-react';
 import { services, vehicleTypes, calculatePricing, money, statusLabels, type Delivery } from '@/lib/catalog';
 type Panel = 'checkout' | 'fleet' | 'registration' | 'support' | 'track' | null;
 type Customer = {
@@ -52,6 +55,7 @@ const steps = [
     body: 'You’ll receive soft copies by email or WhatsApp once your documents are ready. Processing times vary by document. We’ll then arrange Lagos delivery, or you can pick up the originals.'
   }
 ];
+const supportPhone = '+2348078672176';
 export default function Platform() {
   const [selected, setSelected] = useState<string[]>([]),
     [vehicle, setVehicle] = useState<string>('Car'),
@@ -321,16 +325,47 @@ export default function Platform() {
  <header className="header"><div className="container header-inner"><BrandLogo /><nav aria-label="Main navigation"><a href="#services">Our services</a><a href="#how-it-works">How it works</a><button onClick={() => open('fleet')}>For organizations</button></nav><div className="header-actions"><button className="cart-button" onClick={checkout} aria-label={`Open order, ${selected.length} documents`}><ShoppingCart size={21} strokeWidth={1.5} /><span>{selected.length}</span></button><button className="button button-small desktop-start" onClick={scrollServices}>Get started <ArrowUpRight size={15} /></button><button className="menu-button" onClick={() => setMenu(true)} aria-label="Open menu"><Menu /></button></div></div></header>
  <main>
  <section className="container hero" aria-label="Vehicle documents made simple">
-  <div className="hero-main"><div className="hero-grid" /><div className="eyebrow light"><span className="status-dot" /> LAGOS · VEHICLE DOCUMENT SERVICES</div><h1>Your documents.<br /><span>Handled.</span></h1><p>Less paperwork. More peace of mind.<br className="desktop-break" /> From renewals to new registrations, we take care of the details.</p><button className="button hero-cta" onClick={scrollServices}>Sort my documents <ArrowUpRight size={19} /></button><div className="hero-links"><button onClick={() => open('fleet')}>I manage a fleet <ArrowUpRight size={14} /></button><button onClick={() => open('support')}>Get support <ArrowUpRight size={14} /></button></div><div className="hero-bottom"><ShieldCheck size={15} /><span>A little less admin. A lot more road ahead.</span></div>
+  <div className="hero-main">
+   <Image className="hero-photo" src={heroPhoto} alt="" fill sizes="(max-width: 850px) 100vw, 55vw" preload />
+   <div className="eyebrow light"><span className="status-dot" /> Lagos · Vehicle document services</div>
+   <h1>Your<br /><span>Vehicle<br />Documents</span>.<br />Handled.</h1>
+   <p><strong>Less stress. More peace of mind.</strong> From renewals to new registrations, we take care of the details.</p>
+   <button className="button hero-cta" onClick={scrollServices}>Sort my documents <ArrowUpRight size={19} /></button>
+   <div className="hero-links">
+    <button onClick={() => open('fleet')}>I manage a fleet <ArrowUpRight size={15} /></button>
+    <button onClick={() => open('support')}>Get support <ArrowUpRight size={15} /></button>
+   </div>
   </div>
   <div className="hero-tiles">
-   <button className="feature-tile" onClick={scrollServices}><span className="tile-icon"><FileText /></span><span className="tile-value">6 essentials</span><span className="tile-label">VEHICLE DOCUMENT SERVICES</span><span className="tile-link">Explore services <ArrowUpRight size={15} /></span></button>
-   <button className="feature-tile" onClick={() => open('registration')}><span className="tile-icon"><CarFront /></span><span className="tile-value">New wheels?</span><span className="tile-label">NEW VEHICLE REGISTRATION</span><span className="tile-link">Let’s get you registered <ArrowUpRight size={15} /></span></button>
-   <button className="feature-tile" onClick={() => {
-            setDelivery('delivery');
-            scrollServices();
-          }}><span className="tile-icon"><Truck /></span><span className="tile-value">₦5,000</span><span className="tile-label">DELIVERY ACROSS LAGOS</span><span className="tile-link">Or collect for free <ArrowUpRight size={15} /></span></button>
-   <button className="feature-tile fleet-tile" onClick={() => open('fleet')}><span className="tile-icon"><UsersRound /></span><span className="tile-value">The whole fleet.</span><span className="tile-label">SUPPORT FOR ORGANIZATIONS</span><span className="tile-link">Talk to our team <ArrowUpRight size={15} /></span></button>
+   <button className="feature-tile" onClick={scrollServices}>
+    <span className="tile-icon"><FileText /></span>
+    <span className="tile-value">{services.length} Essential<br />Documents</span>
+    <span className="tile-label">Vehicle document services</span>
+    <Image className="tile-art" src={heroDocuments} alt="" sizes="(max-width: 850px) 44vw, 24vw" />
+    <span className="tile-link">Explore services <ArrowUpRight size={15} /></span>
+   </button>
+   <button className="feature-tile" onClick={() => open('registration')}>
+    <span className="tile-icon"><CarFront /></span>
+    <span className="tile-value">New<br />wheels?</span>
+    <span className="tile-label">New vehicle registration</span>
+    <Image className="tile-art" src={heroNumberPlate} alt="" sizes="(max-width: 850px) 44vw, 24vw" />
+    <span className="tile-link">Let’s get you registered <ArrowUpRight size={15} /></span>
+   </button>
+   <div className="feature-tile support-tile">
+    <span className="tile-icon"><Headset /></span>
+    <span className="tile-value">Need help?</span>
+    <span className="tile-label">Contact us now</span>
+    <div className="tile-contact">
+     <a className="tile-whatsapp" href={`https://wa.me/${supportPhone.slice(1)}`}><MessageCircle size={23} />WhatsApp</a>
+     <a href={`tel:${supportPhone}`}><PhoneCall size={23} />Call us</a>
+    </div>
+   </div>
+   <button className="feature-tile fleet-tile" onClick={() => open('fleet')}>
+    <span className="tile-icon"><UsersRound /></span>
+    <span className="tile-value">The whole<br />fleet.</span>
+    <span className="tile-label">Support for organizations</span>
+    <span className="tile-link">Talk to our team <ArrowUpRight size={15} /></span>
+   </button>
   </div>
  </section>
  <div className="container"><div className="promise-strip"><span><CheckCheck size={17} /> Renewals & new registrations</span><span><Mail size={16} /> Soft copies by email & WhatsApp</span><span><PackageCheck size={17} /> Delivery or free collection</span><span className="promise-tag"><ShieldCheck size={16} /> One less thing to worry about.</span></div></div>

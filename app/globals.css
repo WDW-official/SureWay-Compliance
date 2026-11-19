@@ -196,38 +196,32 @@ svg{
 .hero{
   padding-top:35px;
   display:grid;
-  grid-template-columns:1.14fr 1fr;
-  gap:22px
+  grid-template-columns:minmax(0,1.14fr) minmax(0,1fr);
+  gap:18px
 }
 .hero-main{
-  border-radius:24px;
-  background:linear-gradient(110deg,var(--panel) 0%,var(--panel-end) 100%);
+  border-radius:26px;
+  background:var(--panel);
   color:white;
   position:relative;
   isolation:isolate;
   overflow:hidden;
-  padding:39px 39px 26px;
-  min-height:459px
+  display:flex;
+  flex-direction:column;
+  justify-content:center;
+  padding:clamp(22px,3.5vw,46px)
 }
-.hero-grid{
+.hero-photo{
+  z-index:-2;
+  object-fit:cover;
+  object-position:right top
+}
+.hero-main::after{
+  content:'';
   position:absolute;
   inset:0;
   z-index:-1;
-  background-image:linear-gradient(#fcbb0112 1px,transparent 1px),linear-gradient(90deg,#fcbb0112 1px,transparent 1px);
-  background-size:56px 56px;
-  mask-image:linear-gradient(120deg,transparent 10%,#000 80%)
-}
-.hero-main:after{
-  content:'';
-  position:absolute;
-  z-index:-1;
-  width:240px;
-  height:240px;
-  border-radius:50%;
-  background:#fcbb0126;
-  filter:blur(40px);
-  right:-70px;
-  bottom:-65px
+  background:linear-gradient(90deg,#141410af,transparent 88%),linear-gradient(0deg,#161615 2%,#161615c2 19%,transparent 58%)
 }
 .eyebrow{
   font-size:9px;
@@ -249,138 +243,180 @@ svg{
   border-radius:50%;
   flex-shrink:0
 }
+.hero .eyebrow{
+  color:white;
+  text-transform:uppercase;
+  font-size:clamp(8px,1.1vw,11px);
+  letter-spacing:.1px
+}
+.hero .status-dot{
+  width:8px;
+  height:8px
+}
 .hero h1{
-  font-size:clamp(40px,4.1vw,60px);
+  font-size:clamp(40px,5vw,70px);
   font-weight:800;
-  letter-spacing:-2px;
-  line-height:1.16;
-  margin-top:28px;
-  margin-bottom:20px
+  letter-spacing:-.045em;
+  line-height:1.04;
+  margin:28px 0 15px
 }
 .hero h1>span{
   color:var(--accent)
 }
 .hero-main>p{
-  color:var(--panel-muted);
-  max-width:360px;
-  font-size:13px;
-  line-height:1.9;
-  letter-spacing:.05px
+  color:#fff;
+  max-width:31ch;
+  font-size:clamp(13px,1.55vw,18px);
+  line-height:1.4
+}
+.hero-main>p strong{
+  display:block;
+  margin-bottom:3px
 }
 .hero-cta{
   width:100%;
-  margin-top:28px;
-  min-height:47px
+  margin-top:19px;
+  min-height:48px;
+  font-size:14px
 }
 .hero-links{
-  display:flex;
-  gap:10px;
-  margin-top:10px
+  display:grid;
+  grid-template-columns:repeat(2,minmax(0,1fr));
+  gap:9px;
+  margin-top:9px
 }
 .hero-links button{
   display:flex;
   justify-content:center;
   align-items:center;
-  gap:8px;
-  flex:1;
-  padding:12px;
-  border:1px solid #ffffff12;
+  gap:6px;
+  min-height:42px;
+  padding:8px 5px;
+  border:1px solid #ffffff70;
   border-radius:50px;
-  background:#ffffff09;
-  color:var(--panel-text);
-  font-size:11px;
-  font-weight:600
+  background:#ffffff0a;
+  color:white;
+  font-size:12px;
+  font-weight:700
 }
 .hero-links button:hover{
-  background:#ffffff18
-}
-.hero-bottom{
-  display:flex;
-  align-items:center;
-  justify-content:center;
-  gap:7px;
-  color:var(--panel-muted);
-  font-size:9px;
-  margin-top:23px
+  background:#ffffff22
 }
 .hero-tiles{
   display:grid;
-  grid-template-columns:1fr 1fr;
-  gap:17px
+  grid-template-columns:repeat(2,minmax(0,1fr));
+  gap:12px
 }
 .feature-tile{
   background:white;
   border:1px solid var(--line);
-  box-shadow:0 8px 22px #201c1510;
-  border-radius:22px;
+  box-shadow:0 6px 22px #201c150a;
+  border-radius:20px;
   position:relative;
   overflow:hidden;
   text-align:left;
   display:flex;
   flex-direction:column;
   align-items:flex-start;
-  padding:24px 23px;
+  padding:clamp(12px,1.7vw,21px);
   isolation:isolate;
   min-width:0
 }
-.feature-tile:after{
+.feature-tile::after{
   content:'';
-  width:124px;
-  height:124px;
-  border-radius:50%;
   position:absolute;
-  right:-33px;
-  top:-46px;
   z-index:-1;
+  right:-15%;
+  top:-28%;
+  width:65%;
+  aspect-ratio:1;
+  border-radius:50%;
   background:var(--surface-tint)
 }
-.feature-tile:hover{
-  transform:translateY(-3px);
-  box-shadow:0 12px 24px #201c1516
+button.feature-tile:hover{
+  transform:translateY(-2px);
+  box-shadow:0 9px 24px #201c1516
 }
 .tile-icon{
   display:grid;
   place-items:center;
-  width:43px;
-  height:43px;
-  border-radius:13px;
+  width:38px;
+  height:38px;
+  border-radius:11px;
   background:var(--accent);
   color:var(--ink)
 }
 .tile-icon svg{
-  stroke-width:1.3;
-  width:26px;
-  height:26px
+  stroke-width:1.5;
+  width:24px;
+  height:24px
 }
 .tile-value{
   font-family:'Manrope',sans-serif;
-  font-size:27px;
+  font-size:clamp(17px,2.4vw,30px);
   font-weight:800;
-  letter-spacing:-1px;
-  margin-top:19px;
-  line-height:1.2
+  letter-spacing:-.045em;
+  margin-top:7px;
+  line-height:1.05
 }
 .tile-label{
-  font-size:8px;
-  font-weight:600;
-  letter-spacing:.7px;
+  font-size:clamp(8px,1.05vw,11px);
+  font-weight:700;
   color:var(--muted);
-  margin-top:7px
+  margin-top:6px;
+  text-transform:uppercase
+}
+.tile-art{
+  width:100%;
+  height:clamp(95px,10vw,145px);
+  object-fit:contain;
+  mix-blend-mode:multiply;
+  margin:5px 0
 }
 .tile-link{
   width:100%;
   display:flex;
   align-items:center;
   justify-content:space-between;
-  font-size:10px;
-  font-weight:600;
-  padding-top:15px;
+  gap:5px;
+  font-size:clamp(9px,1vw,12px);
+  font-weight:700;
+  padding-top:10px;
   margin-top:auto;
   border-top:1px solid var(--line);
   color:var(--accent-ink)
 }
-.feature-tile .tile-label{
-  margin-bottom:17px
+.support-tile .tile-label,.fleet-tile .tile-label{
+  font-size:clamp(11px,1.4vw,16px);
+  text-transform:none;
+  margin-bottom:12px
+}
+.tile-contact{
+  width:100%;
+  display:grid;
+  grid-template-columns:repeat(2,minmax(0,1fr));
+  gap:6px;
+  margin-top:auto
+}
+.tile-contact a{
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  justify-content:center;
+  gap:4px;
+  border-radius:12px;
+  background:linear-gradient(#343434,#111);
+  color:white;
+  min-height:53px;
+  padding:6px 1px;
+  font-size:clamp(8px,.95vw,12px);
+  font-weight:700
+}
+.tile-contact .tile-whatsapp{
+  background:linear-gradient(#16872b,#09651c)
+}
+.tile-contact a:hover{
+  box-shadow:0 3px 8px #201c1540
 }
 .promise-strip{
   margin-top:23px;
@@ -1871,21 +1907,6 @@ textarea{
     transform:rotate(360deg)
   }
 }
-@media(min-width:1450px){
-  .hero h1{
-    font-size:65px
-  }
-  .hero-main{
-    padding:42px;
-    min-height:480px
-  }
-  .tile-value{
-    font-size:29px
-  }
-  .hero-cta{
-    margin-top:32px
-  }
-}
 @media(max-width:1100px){
   .container{
     width:calc(100% - 60px)
@@ -1893,28 +1914,6 @@ textarea{
   .header nav{
     gap:25px;
     margin-left:0
-  }
-  .hero{
-    grid-template-columns:1.1fr 1fr;
-    gap:18px
-  }
-  .hero-main{
-    padding:30px 29px 24px
-  }
-  .hero h1{
-    font-size:44px
-  }
-  .feature-tile{
-    padding:20px
-  }
-  .tile-value{
-    font-size:24px
-  }
-  .tile-label{
-    font-size:7px
-  }
-  .tile-link{
-    font-size:9px
   }
   .promise-strip{
     padding:15px
@@ -1979,49 +1978,21 @@ textarea{
   .desktop-start{
     display:none
   }
+  .hero{
+    grid-template-columns:minmax(0,1fr)
+  }
   .hero-main{
-    padding:27px 25px 23px
+    max-width:none;
+    min-height:435px
   }
-  .hero h1{
-    font-size:37px;
-    letter-spacing:-1px
-  }
-  .hero-main>p{
-    font-size:11px
-  }
-  .hero .eyebrow{
-    font-size:7px
-  }
-  .hero-tiles{
-    gap:12px
-  }
-  .feature-tile{
-    padding:20px 16px
+  .tile-art{
+    height:clamp(105px,28vw,175px)
   }
   .tile-value{
-    font-size:21px;
-    letter-spacing:-.5px
+    font-size:clamp(17px,4.8vw,30px)
   }
-  .tile-icon{
-    width:36px;
-    height:37px;
-    border-radius:11px
-  }
-  .tile-link{
-    font-size:8px
-  }
-  .tile-label{
-    font-size:6.5px;
-    letter-spacing:.4px
-  }
-  .hero-main{
-    min-height:415px
-  }
-  .hero-bottom{
-    font-size:7px
-  }
-  .hero-links button{
-    font-size:9px
+  .tile-contact a{
+    font-size:11px
   }
   .promise-strip>span{
     font-size:8px;
@@ -2215,14 +2186,6 @@ textarea{
     width:calc(100% - 32px)
   }
   .announcement{
-    height:29px;
-    font-size:8px;
-    gap:5px
-  }
-  .announcement>svg{
-    width:9px
-  }
-  .announcement>a{
     display:none
   }
   .header-inner{
@@ -2251,91 +2214,39 @@ textarea{
     stroke-width:1.6
   }
   .hero{
-    padding-top:21px;
-    grid-template-columns:1fr;
-    gap:22px
+    padding-top:20px;
+    gap:11px
   }
   .hero-main{
-    border-radius:25px;
-    padding:27px 24px 22px;
-    min-height:378px
-  }
-  .hero .eyebrow{
-    font-size:7px;
-    letter-spacing:.6px
+    min-height:0;
+    border-radius:24px;
+    padding:24px clamp(15px,5.5vw,23px) 18px
   }
   .hero h1{
-    font-size:43px;
-    line-height:1.16;
-    letter-spacing:-1.1px;
-    margin-top:26px;
-    margin-bottom:16px
+    font-size:clamp(31px,8.7vw,51px);
+    margin:25px 0 14px
   }
   .hero-main>p{
-    font-size:11px;
-    line-height:1.9;
-    max-width:290px
-  }
-  .hero-cta{
-    margin-top:23px;
-    min-height:44px;
-    font-size:11px;
-    gap:10px
-  }
-  .hero-links{
-    margin-top:9px;
-    gap:9px
+    font-size:clamp(11px,3.15vw,16px)
   }
   .hero-links button{
-    font-size:9px;
-    padding:11px
-  }
-  .hero-bottom{
-    display:none
-  }
-  .desktop-break{
-    display:none
-  }
-  .hero-tiles{
-    grid-template-columns:1fr 1fr;
-    gap:13px
+    min-height:37px;
+    font-size:11px
   }
   .feature-tile{
-    padding:21px 19px 17px;
-    min-height:181px;
-    border-radius:23px
+    border-radius:17px
   }
   .tile-icon{
-    width:39px;
-    height:40px;
-    border-radius:12px
+    width:32px;
+    height:32px;
+    border-radius:9px
   }
   .tile-icon svg{
-    width:25px;
-    height:25px
+    width:21px;
+    height:21px
   }
-  .tile-value{
-    font-size:25px;
-    margin-top:17px;
-    letter-spacing:-.8px
-  }
-  .fleet-tile .tile-value{
-    font-size:23px
-  }
-  .tile-label{
-    font-size:6.5px;
-    letter-spacing:.3px;
-    margin-top:6px
-  }
-  .feature-tile .tile-label{
-    margin-bottom:17px
-  }
-  .tile-link{
-    font-size:8px;
-    padding-top:12px
-  }
-  .tile-link svg{
-    width:12px
+  .tile-contact a{
+    font-size:clamp(8px,2.45vw,11px)
   }
   .promise-strip{
     padding:15px 13px;
