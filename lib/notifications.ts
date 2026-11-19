@@ -50,72 +50,78 @@ async function deliver(key: string) {
   try {
     const documents = (job.files as StoredFile[]).map(download);
     const body = job.text + (documents.length ? '\n\nYour documents (links expire in 24 hours):\n' + documents.map(f => `${f.name}: ${f.url}`).join('\n') : '');
+    const errors: string[] = [];
     if (!job.emailSent) {
-      if (!process.env.RESEND_API_KEY || !process.env.EMAIL_FROM) throw new Error('Email notification provider is not configured');
-      const res = await fetch('https://api.resend.com/emails', {
-        method: 'POST',
-        signal: AbortSignal.timeout(15000),
-        headers: {
-          Authorization: `Bearer ${process.env.RESEND_API_KEY}`,
-          'Content-Type': 'application/json',
-          'Idempotency-Key': job.key
-        },
-        body: JSON.stringify({
-          from: process.env.EMAIL_FROM,
-          to: [job.to],
-          subject: job.subject,
-          text: body
-        })
-      });
-      if (!res.ok) throw new Error('Email delivery failed');
-      await database.collection('notification_jobs').updateOne({
-        key
-      }, {
-        $set: {
-          emailSent: true
-        }
-      });
+      try {
+        if (!process.env.RESEND_API_KEY || !process.env.EMAIL_FROM) throw new Error('Email notification provider is not configured');
+        const res = await fetch('https://api.resend.com/emails', {
+          method: 'POST',
+          signal: AbortSignal.timeout(15000),
+          headers: {
+            Authorization: `Bearer ${process.env.RESEND_API_KEY}`,
+            'Content-Type': 'application/json',
+            'Idempotency-Key': job.key
+          },
+          body: JSON.stringify({
+            from: process.env.EMAIL_FROM,
+            to: [job.to],
+            subject: job.subject,
+            text: body
+          })
+        });
+        if (!res.ok) throw new Error('Email delivery failed');
+        await database.collection('notification_jobs').updateOne({
+          key
+        }, {
+          $set: {
+            emailSent: true
+          }
+        });
+      } catch (error) { errors.push(error instanceof Error ? error.message : 'Email delivery failed'); }
     }
     if (job.phone && !job.whatsappSent) {
-      if (!process.env.WHATSAPP_TOKEN || !process.env.WHATSAPP_PHONE_NUMBER_ID || !process.env.WHATSAPP_TEMPLATE_NAME) throw new Error('WhatsApp provider is not configured');
-      const res = await fetch(`https://graph.facebook.com/v23.0/${process.env.WHATSAPP_PHONE_NUMBER_ID}/messages`, {
-        method: 'POST',
-        signal: AbortSignal.timeout(15000),
-        headers: {
-          Authorization: `Bearer ${process.env.WHATSAPP_TOKEN}`,
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-          messaging_product: 'whatsapp',
-          to: String(job.phone).replace(/\D/g, '').replace(/^0/, '234'),
-          type: 'template',
-          template: {
-            name: process.env.WHATSAPP_TEMPLATE_NAME,
-            language: {
-              code: process.env.WHATSAPP_TEMPLATE_LANGUAGE || 'en'
-            },
-            components: [{
-              type: 'body',
-              parameters: [{
-                type: 'text',
-                text: job.subject
-              }, {
-                type: 'text',
-                text: body.slice(0, 3000)
+      try {
+        if (!process.env.WHATSAPP_TOKEN || !process.env.WHATSAPP_PHONE_NUMBER_ID || !process.env.WHATSAPP_TEMPLATE_NAME) throw new Error('WhatsApp provider is not configured');
+        const res = await fetch(`https://graph.facebook.com/v23.0/${process.env.WHATSAPP_PHONE_NUMBER_ID}/messages`, {
+          method: 'POST',
+          signal: AbortSignal.timeout(15000),
+          headers: {
+            Authorization: `Bearer ${process.env.WHATSAPP_TOKEN}`,
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            messaging_product: 'whatsapp',
+            to: String(job.phone).replace(/\D/g, '').replace(/^0/, '234'),
+            type: 'template',
+            template: {
+              name: process.env.WHATSAPP_TEMPLATE_NAME,
+              language: {
+                code: process.env.WHATSAPP_TEMPLATE_LANGUAGE || 'en'
+              },
+              components: [{
+                type: 'body',
+                parameters: [{
+                  type: 'text',
+                  text: job.subject
+                }, {
+                  type: 'text',
+                  text: body.slice(0, 3000)
+                }]
               }]
-            }]
+            }
+          })
+        });
+        if (!res.ok) throw new Error('WhatsApp delivery failed');
+        await database.collection('notification_jobs').updateOne({
+          key
+        }, {
+          $set: {
+            whatsappSent: true
           }
-        })
-      });
-      if (!res.ok) throw new Error('WhatsApp delivery failed');
-      await database.collection('notification_jobs').updateOne({
-        key
-      }, {
-        $set: {
-          whatsappSent: true
-        }
-      });
+        });
+      } catch (error) { errors.push(error instanceof Error ? error.message : 'WhatsApp delivery failed'); }
     }
+    if (errors.length) throw new Error(errors.join('; '));
     await database.collection('notification_jobs').updateOne({
       key
     }, {

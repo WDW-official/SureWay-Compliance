@@ -17,6 +17,8 @@ export async function POST(request: Request) {
       ...parsed.data,
       email: parsed.data.email.toLowerCase(),
       status: 'new',
+      submissionState: 'pending',
+      submissionAttempts: 0,
       createdAt: new Date()
     };
     const result = await (await db()).collection('enquiries').insertOne(data);

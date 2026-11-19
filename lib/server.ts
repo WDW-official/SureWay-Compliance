@@ -26,14 +26,14 @@ export async function db() {
     key: 1
   }, {
     unique: true
-  })]).catch(e => {
+  }), ...['orders', 'enquiries'].map(name => database.collection(name).createIndex({ submissionState: 1, submissionLockedUntil: 1, createdAt: 1 }))]).catch(e => {
     indexReady = undefined;
     throw e;
   });
   await indexReady;
   return database;
 }
-export const isLive = () => !!(process.env.MONGODB_URI && process.env.PAYSTACK_SECRET_KEY && process.env.APP_URL && process.env.CLOUDINARY_CLOUD_NAME && process.env.CLOUDINARY_API_KEY && process.env.CLOUDINARY_API_SECRET && (process.env.ADMIN_SESSION_SECRET?.length || 0) >= 32 && (process.env.ADMIN_PASSWORD?.length || 0) >= 16 && process.env.RESEND_API_KEY && process.env.EMAIL_FROM && process.env.TEAM_EMAIL && process.env.WHATSAPP_TOKEN && process.env.WHATSAPP_PHONE_NUMBER_ID && process.env.WHATSAPP_TEMPLATE_NAME && process.env.PRICING_CONFIRMED === 'true');
+export const isLive = () => !!(process.env.GOOGLE_DRIVE_CLIENT_ID && process.env.GOOGLE_DRIVE_CLIENT_SECRET && process.env.GOOGLE_DRIVE_REFRESH_TOKEN && process.env.GOOGLE_DRIVE_FOLDER_ID && process.env.MONGODB_URI && process.env.PAYSTACK_SECRET_KEY && process.env.APP_URL && process.env.CLOUDINARY_CLOUD_NAME && process.env.CLOUDINARY_API_KEY && process.env.CLOUDINARY_API_SECRET && (process.env.ADMIN_SESSION_SECRET?.length || 0) >= 32 && (process.env.ADMIN_PASSWORD?.length || 0) >= 16 && process.env.RESEND_API_KEY && process.env.EMAIL_FROM && process.env.TEAM_EMAIL && process.env.WHATSAPP_TOKEN && process.env.WHATSAPP_PHONE_NUMBER_ID && process.env.WHATSAPP_TEMPLATE_NAME && process.env.PRICING_CONFIRMED === 'true');
 export const randomToken = () => randomBytes(24).toString('hex');
 export const hash = (value: string) => createHash('sha256').update(value).digest('hex');
 export function equal(a: string, b: string) {
