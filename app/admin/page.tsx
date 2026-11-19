@@ -1,7 +1,8 @@
 'use client';
 
+import BrandLogo from '@/components/brand-logo';
 import { useState, useEffect, type FormEvent } from 'react';
-import { Check, ArrowUpRight, LogOut, LoaderCircle, PackageCheck, UsersRound, Mail, FileText, RefreshCw } from 'lucide-react';
+import { ArrowUpRight, LogOut, LoaderCircle, PackageCheck, UsersRound, Mail, FileText, RefreshCw } from 'lucide-react';
 import { money, statusLabels, statuses } from '@/lib/catalog';
 type Order = {
   _id: string;
@@ -142,7 +143,7 @@ export default function Admin() {
       setError(String(e));
     }
   }
-  return <div className="admin-app"><header className="admin-header"><a href="/" className="brand"><span className="brand-mark"><Check /></span><span>SureWay<small>TEAM WORKSPACE</small></span></a><a href="/" className="text-link">View website <ArrowUpRight size={14} /></a>{logged && <button onClick={async () => {
+  return <div className="admin-app"><header className="admin-header"><BrandLogo href="/" /><a href="/" className="text-link">View website <ArrowUpRight size={14} /></a>{logged && <button onClick={async () => {
         await fetch('/api/admin/logout', {
           method: 'POST'
         });
