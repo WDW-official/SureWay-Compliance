@@ -2,9 +2,12 @@
 
 import Image from 'next/image';
 import brandMark from '@/app/icon.png';
+import chooseDocuments from '@/assets/how-choose-documents.webp';
+import processDocuments from '@/assets/how-process-documents.webp';
+import receiveDocuments from '@/assets/how-receive-documents.webp';
 import BrandLogo from '@/components/brand-logo';
 import { useEffect, useRef, useState, type FormEvent } from 'react';
-import { ArrowRight, ArrowUpRight, Check, CheckCheck, ChevronDown, ChevronLeft, ChevronRight, Clock3, FileText, ShieldCheck, CarFront, Truck, UsersRound, ShoppingCart, Menu, X, Plus, Minus, MapPin, Mail, MessageCircle, LockKeyhole, UploadCloud, Search, CircleHelp, Building2, Sparkles, PackageCheck, LoaderCircle, CheckCircle2, Download } from 'lucide-react';
+import { ArrowRight, ArrowUpRight, Check, CheckCheck, ChevronDown, ChevronLeft, ChevronRight, FileText, ShieldCheck, CarFront, Truck, UserRound, UsersRound, ShoppingCart, Menu, X, Plus, Minus, MapPin, Mail, MessageCircle, LockKeyhole, UploadCloud, Search, CircleHelp, Building2, Sparkles, PackageCheck, LoaderCircle, CheckCircle2, Download } from 'lucide-react';
 import { services, vehicleTypes, calculatePricing, money, statusLabels, type Delivery } from '@/lib/catalog';
 type Panel = 'checkout' | 'fleet' | 'registration' | 'support' | 'track' | null;
 type Customer = {
@@ -26,13 +29,29 @@ const initialCustomer: Customer = {
   channel: 'both'
 };
 const faq = [['Do I need an account to order?', 'No account needed. Select your documents, share your vehicle and contact details, and pay securely. Keep your order reference to track progress.'], ["What is included in the price?", 'Your document fees, our processing charge, 7.5% VAT on the service charge, and any delivery fee are shown separately before payment. Collection is free.'], ['How do I receive my documents?', 'We share soft copies by email and/or WhatsApp. Choose delivery within Lagos for ₦5,000, or collect the originals for free. Our team will confirm the collection location when they are ready.'], ['Can you help with a company fleet?', 'Yes. We support organizations, including Unilever. Send us your fleet size and usual document requirements, and our team will get in touch to arrange the service.']];
-function ServiceIcon({
-  kind
-}: {
-  kind: string;
-}) {
-  return kind === 'shield' ? <ShieldCheck size={23} strokeWidth={1.4} /> : kind === 'car' ? <CarFront size={23} strokeWidth={1.4} /> : <FileText size={23} strokeWidth={1.4} />;
-}
+const serviceIcons = {
+  document: FileText,
+  car: CarFront,
+  person: UserRound,
+  shield: ShieldCheck
+};
+const steps = [
+  {
+    image: chooseDocuments,
+    title: 'Choose your documents',
+    body: 'Select the documents you need, share your vehicle details, and upload existing documents if required. Review all charges before paying.'
+  },
+  {
+    image: processDocuments,
+    title: 'Leave the processing with us',
+    body: 'Our team handles your request and checks the completed documents. You can track your order along the way.'
+  },
+  {
+    image: receiveDocuments,
+    title: 'Soft copies. Then the originals.',
+    body: 'You’ll receive soft copies by email or WhatsApp once your documents are ready. Processing times vary by document. We’ll then arrange Lagos delivery, or you can pick up the originals.'
+  }
+];
 export default function Platform() {
   const [selected, setSelected] = useState<string[]>([]),
     [vehicle, setVehicle] = useState<string>('Car'),
@@ -317,32 +336,80 @@ export default function Platform() {
  <div className="container"><div className="promise-strip"><span><CheckCheck size={17} /> Renewals & new registrations</span><span><Mail size={16} /> Soft copies by email & WhatsApp</span><span><PackageCheck size={17} /> Delivery or free collection</span><span className="promise-tag"><ShieldCheck size={16} /> One less thing to worry about.</span></div></div>
  <section className="container services-section" id="services"><div className="section-heading"><div><div className="eyebrow">01 / FOR INDIVIDUALS</div><h2>What can we take<br className="mobile-break" /> off your plate?</h2><p>Choose your vehicle, select your documents, and see exactly what you’ll pay.</p></div><span className="section-note"><span className="status-dot" /> Clear fees. No guesswork.</span></div>
  <div className="vehicle-select"><span>Your vehicle type</span><div role="group" aria-label="Vehicle type">{vehicleTypes.map(v => <button key={v} onClick={() => setVehicle(v)} className={vehicle === v ? 'active' : ''}>{v === 'Car' ? <CarFront size={16} /> : null}{v}</button>)}</div></div>
- <div className="services-layout"><div className="catalog"><div className="catalog-toolbar"><div className="category-tabs" role="group" aria-label="Service category">{['All services', 'Essentials', 'Permits', 'Commercial', 'Registration'].map(c => <button key={c} className={category === c ? 'active' : ''} onClick={() => setCategory(c)}>{c}</button>)}</div><button className="search-toggle" onClick={() => document.getElementById('service-search')?.focus()} aria-label="Search services"><Search size={18} /></button></div><label className="search-field"><Search size={16} /><input id="service-search" placeholder="Find a document…" value={query} onChange={e => setQuery(e.target.value)} />{query && <button onClick={() => setQuery('')} aria-label="Clear search"><X size={15} /></button>}</label>
- {category === 'Registration' ? <div className="registration-card"><span className="tile-icon"><CarFront /></span><h3>A fresh start for your new vehicle.</h3><p>Get help with your first registration, number plates and ownership documents. Tell us about your vehicle for a tailored quote.</p><button className="button" onClick={() => open('registration')}>Request registration <ArrowUpRight size={17} /></button></div> : <div className="service-grid">{visible.map(s => <button key={s.id} className={'service-card ' + (selected.includes(s.id) ? 'selected' : '')} onClick={() => toggle(s.id)} aria-pressed={selected.includes(s.id)}><div className="service-card-top"><span className="service-icon"><ServiceIcon kind={s.icon} /></span><span className="select-indicator">{selected.includes(s.id) ? <Check size={14} /> : <Plus size={15} />}</span></div><h3>{s.name}</h3><p>{s.description}</p><div className="service-pricing"><span><strong>{money(s.fee)}</strong><small>Document fee</small></span><span><b>+ {money(s.charge)}</b><small>Service charge</small></span></div></button>)}{!visible.length && <div className="empty-search"><Search size={28} /><h3>No documents found</h3><p>Try another name or view all our services.</p><button className="text-link" onClick={() => {
-                  setCategory('All services');
-                  setQuery('');
-                }}>View all services <ArrowRight size={15} /></button></div>}</div>}
+ <div className="services-layout">
+  <div className="catalog">
+   <div className="category-tabs" role="group" aria-label="Service category">
+    {['All services', 'Essentials', 'Permits', 'Commercial', 'Registration'].map(c => (
+      <button key={c} className={category === c ? 'active' : ''} aria-pressed={category === c} onClick={() => setCategory(c)}>{c}</button>
+    ))}
+   </div>
+   <div className="search-field">
+    <Search size={17} aria-hidden="true" />
+    <input type="search" aria-label="Search services" placeholder="Find a document…" value={query} onChange={e => setQuery(e.target.value)} />
+    {query && <button onClick={() => setQuery('')} aria-label="Clear search"><X size={15} /></button>}
+   </div>
+   {category === 'Registration' ? (
+    <div className="registration-card">
+     <span className="tile-icon"><CarFront /></span>
+     <h3>A fresh start for your new vehicle.</h3>
+     <p>Get help with your first registration, number plates and ownership documents. Tell us about your vehicle for a tailored quote.</p>
+     <button className="button" onClick={() => open('registration')}>Request registration <ArrowUpRight size={17} /></button>
+    </div>
+   ) : (
+    <div className="service-grid">
+     {visible.map(service => {
+       const Icon = serviceIcons[service.icon];
+       const isSelected = selected.includes(service.id);
+       return (
+        <button key={service.id} className={isSelected ? 'service-card selected' : 'service-card'} onClick={() => toggle(service.id)} aria-pressed={isSelected}>
+         <div className="service-card-top">
+          <span className="service-icon"><Icon size={24} strokeWidth={1.6} aria-hidden="true" /></span>
+          <span className="select-indicator" aria-hidden="true">{isSelected ? <Check size={15} /> : <Plus size={15} />}</span>
+         </div>
+         <h3>{service.name}</h3>
+         <p>{service.description}</p>
+         <div className="service-pricing">
+          <span><strong>{money(service.fee)}</strong><small>Document fee</small></span>
+          <span><b>+ {money(service.charge)}</b><small>Service charge</small></span>
+         </div>
+        </button>
+       );
+     })}
+     {!visible.length && (
+      <div className="empty-search">
+       <Search size={28} />
+       <h3>No documents found</h3>
+       <p>Try another name or view all our services.</p>
+       <button className="text-link" onClick={() => {
+         setCategory('All services');
+         setQuery('');
+       }}>View all services <ArrowRight size={15} /></button>
+      </div>
+     )}
+    </div>
+   )}
  <div className="registration-nudge"><span className="nudge-icon"><CarFront size={20} /></span><span><b>Registering a new vehicle?</b><small>We’ll help you get road-ready from the start.</small></span><button onClick={() => open('registration')}>Let’s talk <ArrowUpRight size={17} /></button></div><p className="price-note"><CircleHelp size={14} /> Document fees, service charges, VAT and delivery are shown separately.</p>
  </div>
  <aside className="order-summary" aria-label="Your order"><div className="order-title"><h3>Your order</h3><span>{selected.length} selected</span></div>{chosen.length ? <div className="order-items">{chosen.map(s => <div className="order-item" key={s.id}><span>{s.name}<small>{vehicle}</small></span><button onClick={() => toggle(s.id)} aria-label={`Remove ${s.name}`}><X size={16} /></button></div>)}</div> : <div className="empty-order"><span><FileText size={28} strokeWidth={1.2} /></span><p>A little less paperwork<br />starts here.</p><small>Select the documents you need<br />and we’ll take it from there.</small></div>}
  <div className="delivery-toggle" role="group" aria-label="Receive hard copies"><button className={delivery === 'delivery' ? 'active' : ''} onClick={() => setDelivery('delivery')}><Truck size={13} /> Delivery · ₦5,000</button><button className={delivery === 'collection' ? 'active' : ''} onClick={() => setDelivery('collection')}>Collection · Free</button></div><dl className="order-costs"><div><dt>Document fees</dt><dd>{money(totals.documents)}</dd></div><div><dt>Service charges</dt><dd>{money(totals.charges)}</dd></div><div><dt>VAT on service charges (7.5%)</dt><dd>{money(totals.vat, true)}</dd></div><div><dt>{delivery === 'delivery' ? 'Lagos delivery' : 'Collection'}</dt><dd>{delivery === 'collection' ? 'Free' : money(totals.shipping)}</dd></div></dl><div className="order-total"><span>Total to pay</span><strong>{money(totals.total, totals.total % 1 !== 0)}</strong></div><button className="button" onClick={checkout}>Continue to vehicle details <ArrowRight size={16} /></button><p className="secure-note"><LockKeyhole size={11} /> Review everything before you pay</p><div className="paystack-note"><span className="paystack-bars"><i /><i /><i /><i /></span><span>Secured by <b>paystack</b></span></div></aside></div>
  </section>
- <section className="how-section" id="how-it-works"><div className="container"><div className="section-heading"><div><div className="eyebrow">02 / A LITTLE LESS LIFE ADMIN</div><h2>Paperwork, without<br />the runaround.</h2></div><p className="heading-aside">Three simple steps.<br />We’ll take it from there.</p></div><div className="steps-grid">{[{
-              number: '01',
-              icon: <FileText />,
-              title: 'Choose your documents',
-              body: 'Select your services, share your vehicle details, and upload your existing papers. Review every charge before paying.'
-            }, {
-              number: '02',
-              icon: <Clock3 />,
-              title: 'Leave the processing with us',
-              body: 'Our team handles your request and checks the completed documents. You can track your order along the way.'
-            }, {
-              number: '03',
-              icon: <PackageCheck />,
-              title: 'Soft copies. Then originals.',
-              body: 'Receive your soft copies by email or WhatsApp. We’ll arrange Lagos delivery or get your originals ready for collection.'
-            }].map(s => <div className="step-card" key={s.number}><div><span>{s.number}</span>{s.icon}</div><h3>{s.title}</h3><p>{s.body}</p></div>)}</div></div></section>
+ <section className="how-section" id="how-it-works" aria-labelledby="how-heading">
+  <div className="container">
+   <h2 id="how-heading">Paperwork, without<br />the runaround.</h2>
+   <ol className="steps-grid" role="list">
+    {steps.map((step, index) => (
+     <li className="step-card" key={step.title}>
+      <div className="step-copy">
+       <span className="step-number" aria-hidden="true">0{index + 1}</span>
+       <h3>{step.title}</h3>
+       <p>{step.body}</p>
+      </div>
+      <Image className="step-image" src={step.image} alt="" sizes="(max-width: 640px) 32vw, 180px" />
+     </li>
+    ))}
+   </ol>
+  </div>
+ </section>
  <section className="container fleet-section" id="organizations"><div className="fleet-copy"><div className="eyebrow light">03 / FOR ORGANIZATIONS</div><h2>One vehicle or a whole fleet.<br /><span>You’re in good hands.</span></h2><p>Keep your team moving while we handle the paperwork. Get coordinated document processing and a real person to help with your requirements.</p><button className="button" onClick={() => open('fleet')}>Let’s talk about your fleet <ArrowUpRight size={17} /></button><div className="fleet-trust">Supporting organizations including <b>Unilever</b></div></div><div className="fleet-visual" aria-hidden="true"><div className="fleet-visual-header"><Image className="mini-logo" src={brandMark} alt="" width={24} height={24} /><b>A clearer road ahead.</b><span className="fleet-dots">•••</span></div><div className="fleet-visual-title"><span>YOUR FLEET, TAKEN CARE OF</span><ShieldCheck size={20} /></div>{[{
             icon: <CarFront />,
             name: 'Vehicle renewals',

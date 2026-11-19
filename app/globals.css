@@ -489,20 +489,15 @@ svg{
   gap:32px;
   align-items:start
 }
-.catalog-toolbar{
-  display:flex;
-  align-items:center;
-  justify-content:space-between;
-  margin-bottom:19px
-}
 .category-tabs{
   display:flex;
-  gap:7px;
-  flex-wrap:wrap
+  gap:8px;
+  flex-wrap:wrap;
+  margin-bottom:14px
 }
 .category-tabs button{
-  padding:9px 17px;
-  font-size:9px;
+  padding:9px 16px;
+  font-size:12px;
   font-weight:700;
   background:white;
   border-radius:30px;
@@ -516,33 +511,44 @@ svg{
 .category-tabs button:not(.active):hover{
   background:var(--accent-tint)
 }
-.search-toggle{
-  width:30px;
-  height:30px;
-  color:var(--muted);
-  display:none
-}
 .search-field{
-  display:none;
+  display:flex;
   align-items:center;
-  gap:8px;
+  gap:10px;
   background:#fff;
   border:1px solid var(--line);
-  border-radius:10px;
-  margin-bottom:18px;
-  padding:8px 12px;
+  border-radius:13px;
+  margin-bottom:14px;
+  padding:0 13px;
+  min-height:42px;
   color:var(--muted)
 }
+.search-field:focus-within{
+  border-color:var(--focus)
+}
 .search-field input{
+  flex:1;
+  min-width:0;
+  padding:8px 0;
   border:0;
   outline:none;
-  background:none;
-  width:100%;
-  font-size:12px
+  box-shadow:none;
+  color:var(--ink);
+  font-size:16px
+}
+.search-field input::-webkit-search-cancel-button{
+  appearance:none
+}
+.search-field button{
+  flex-shrink:0;
+  display:grid;
+  place-items:center;
+  width:26px;
+  height:26px
 }
 .service-grid{
   display:grid;
-  grid-template-columns:1fr 1fr;
+  grid-template-columns:repeat(2,minmax(0,1fr));
   gap:18px
 }
 .service-card{
@@ -599,24 +605,28 @@ svg{
   background:var(--accent)
 }
 .service-card h3{
-  font-size:14px;
-  line-height:1.5;
+  font-size:15px;
+  line-height:1.25;
   font-weight:800;
-  margin-top:17px;
-  letter-spacing:-.2px
+  margin-top:13px;
+  letter-spacing:-.25px;
+  overflow-wrap:anywhere
 }
 .service-card>p{
-  font-size:10px;
+  font-size:12px;
   color:var(--muted);
-  margin-top:6px;
-  line-height:1.7;
-  margin-bottom:26px
+  margin-top:7px;
+  line-height:1.45;
+  margin-bottom:18px;
+  overflow-wrap:anywhere
 }
 .selected>p{
   color:var(--panel-muted)
 }
 .service-pricing{
   display:flex;
+  flex-wrap:wrap;
+  gap:5px 8px;
   align-items:center;
   justify-content:space-between;
   width:100%;
@@ -629,18 +639,19 @@ svg{
 }
 .service-pricing>span:last-child{
   text-align:right;
-  align-self:center
+  align-self:end;
+  margin-inline-start:auto
 }
 .service-pricing strong{
   font-family:'Manrope',sans-serif;
-  font-size:24px;
+  font-size:22px;
   font-weight:800;
   letter-spacing:-.7px;
   line-height:1.2
 }
 .service-pricing small{
   display:block;
-  font-size:8px;
+  font-size:10px;
   color:var(--muted);
   margin-top:2px
 }
@@ -879,61 +890,65 @@ svg{
 }
 .how-section{
   background:var(--surface-warm);
-  border-top:1px solid var(--line);
-  border-bottom:1px solid var(--line);
+  border-block:1px solid var(--line);
   padding:62px 0
 }
-.how-section .section-heading{
-  margin-bottom:29px
-}
-.how-section .heading-aside{
-  font-size:12px;
-  color:var(--muted);
-  margin-bottom:3px;
-  margin-right:2px
+.how-section h2{
+  font-size:clamp(26px,6.8vw,42px);
+  font-weight:800;
+  letter-spacing:-.035em;
+  line-height:1.2;
+  margin-bottom:22px
 }
 .steps-grid{
   display:grid;
-  grid-template-columns:repeat(3,1fr);
-  gap:19px
+  grid-template-columns:repeat(3,minmax(0,1fr));
+  gap:18px
 }
 .step-card{
+  display:grid;
+  grid-template-rows:1fr auto;
+  align-items:start;
+  gap:12px;
+  min-width:0;
   border:1px solid var(--line);
   background:#fff;
   border-radius:20px;
-  box-shadow:0 8px 20px #201c1504;
-  padding:25px 27px 30px
+  box-shadow:0 3px 8px #201c1507;
+  padding:18px
 }
-.step-card>div{
-  display:flex;
-  justify-content:space-between;
-  align-items:center;
+.step-number{
+  display:block;
   border-bottom:1px solid var(--line);
-  padding-bottom:18px;
-  margin-bottom:20px
-}
-.step-card>div>span{
+  padding-bottom:8px;
+  margin-bottom:9px;
   font-family:'Manrope',sans-serif;
-  font-size:27px;
+  font-size:30px;
   letter-spacing:-1px;
+  line-height:1;
   color:var(--accent-ink);
   font-weight:800
 }
-.step-card>div>svg{
-  color:var(--accent-ink);
-  width:21px;
-  stroke-width:1.2
-}
 .step-card h3{
-  font-size:14px;
+  font-size:19px;
   font-weight:800;
-  line-height:1.5;
-  margin-bottom:13px
+  line-height:1.15;
+  letter-spacing:-.025em;
+  margin-bottom:8px
 }
 .step-card p{
-  font-size:11px;
-  line-height:1.9;
-  color:var(--muted)
+  font-size:14px;
+  line-height:1.4
+}
+.step-image{
+  display:block;
+  width:86%;
+  max-width:180px;
+  height:auto;
+  justify-self:center
+}
+.step-card:nth-child(2) .step-image{
+  width:100%
 }
 .fleet-section{
   margin-top:64px;
@@ -1406,7 +1421,7 @@ form label,.full-label,.stacked-form label{
   gap:7px;
   color:var(--ink)
 }
-input:not([type=checkbox]):not([type=file]),textarea,select{
+input:not([type=checkbox],[type=file],[type=search]),textarea,select{
   width:100%;
   background:white;
   border:1px solid var(--line);
@@ -1915,12 +1930,8 @@ textarea{
     padding:18px 17px;
     min-height:224px
   }
-  .service-card h3{
-    font-size:13px
-  }
   .category-tabs button{
-    padding:9px 12px;
-    font-size:8px
+    padding:9px 12px
   }
   .order-summary{
     padding:23px 20px
@@ -2056,17 +2067,12 @@ textarea{
   .service-card{
     min-height:205px
   }
-  .service-card h3{
-    font-size:14px
-  }
   .category-tabs{
-    gap:5px
+    gap:6px
   }
   .category-tabs button{
-    padding:8px 10px
-  }
-  .catalog-toolbar{
-    margin-bottom:14px
+    padding:8px 10px;
+    font-size:11px
   }
   .order-summary{
     top:97px;
@@ -2119,17 +2125,14 @@ textarea{
     align-items:flex-start;
     line-height:1.8
   }
-  .step-card{
-    padding:21px 19px
-  }
-  .step-card h3{
-    font-size:12px
-  }
-  .step-card p{
-    font-size:10px
-  }
   .steps-grid{
+    grid-template-columns:minmax(0,1fr);
     gap:12px
+  }
+  .step-card{
+    grid-template-columns:minmax(0,1fr) minmax(0,34%);
+    grid-template-rows:auto;
+    align-items:center
   }
   .fleet-section{
     grid-template-columns:1fr 1fr;
@@ -2409,81 +2412,46 @@ textarea{
     grid-template-columns:minmax(0,1fr);
     gap:23px
   }
-  .category-tabs{
-    gap:6px
-  }
   .category-tabs button{
-    padding:9px 13px;
-    font-size:8px
-  }
-  .catalog-toolbar{
-    margin-bottom:15px
-  }
-  .search-field{
-    display:flex;
-    margin-bottom:14px
-  }
-  .search-field input{
-    min-width:0;
-    padding:3px!important;
-    font-size:11px!important;
-    border:0!important;
-    box-shadow:none!important
+    padding:8px;
+    font-size:10px
   }
   .service-grid{
     grid-template-columns:repeat(2,minmax(0,1fr));
-    gap:12px
+    gap:10px
   }
   .service-card{
-    min-height:218px;
-    padding:16px 15px 14px;
-    border-radius:17px
+    min-height:192px;
+    padding:14px 7px 12px;
+    border-radius:18px
   }
   .service-icon{
-    width:32px;
-    height:34px;
-    border-radius:10px
-  }
-  .service-icon svg{
-    width:21px;
-    height:21px
+    width:37px;
+    height:37px;
+    border-radius:11px
   }
   .select-indicator{
-    width:20px;
-    height:20px
-  }
-  .select-indicator svg{
-    width:13px
+    width:24px;
+    height:24px
   }
   .service-card h3{
-    font-size:11px;
-    line-height:1.5;
-    margin-top:15px;
-    min-height:33px
+    font-size:13px
   }
   .service-card>p{
-    font-size:9px;
-    line-height:1.6;
-    margin-top:4px;
-    margin-bottom:16px
+    font-size:11px
   }
   .service-pricing{
-    padding-top:10px;
-    flex-wrap:wrap;
-    gap:7px
+    padding-top:9px;
+    column-gap:5px
   }
   .service-pricing strong{
-    font-size:20px;
-    letter-spacing:-.7px
+    font-size:18px
   }
   .service-pricing b{
-    font-size:8px
+    font-size:10px
   }
   .service-pricing small{
-    font-size:6px
-  }
-  .service-pricing>span:last-child{
-    align-self:end
+    font-size:9px
   }
   .registration-nudge{
     padding:14px 13px;
@@ -2561,36 +2529,18 @@ textarea{
     font-size:10px
   }
   .how-section{
-    padding:44px 0
-  }
-  .how-section h2{
-    font-size:29px
-  }
-  .heading-aside{
-    display:none
-  }
-  .steps-grid{
-    grid-template-columns:1fr;
-    gap:16px
+    padding:24px 0
   }
   .step-card{
-    border-radius:20px;
-    padding:22px 24px 27px
-  }
-  .step-card>div{
-    padding-bottom:15px;
-    margin-bottom:17px
-  }
-  .step-card>div>span{
-    font-size:26px
+    gap:10px;
+    border-radius:16px;
+    padding:13px 14px 16px
   }
   .step-card h3{
-    font-size:14px;
-    margin-bottom:13px
+    font-size:clamp(15px,4.55vw,19px)
   }
   .step-card p{
-    font-size:11px;
-    line-height:1.9
+    font-size:13px
   }
   .fleet-section{
     margin-top:42px;

@@ -14,7 +14,7 @@ export const services = [{
   category: 'Essentials',
   fee: 10500,
   charge: 2500,
-  icon: 'shield',
+  icon: 'car',
   timeframe: '3–5 working days'
 }, {
   id: 'proof-of-ownership',
@@ -23,7 +23,7 @@ export const services = [{
   category: 'Essentials',
   fee: 2500,
   charge: 2500,
-  icon: 'document',
+  icon: 'person',
   timeframe: '2–3 working days'
 }, {
   id: 'hackney',
@@ -32,7 +32,7 @@ export const services = [{
   category: 'Commercial',
   fee: 7000,
   charge: 2500,
-  icon: 'car',
+  icon: 'shield',
   timeframe: '3–5 working days'
 }, {
   id: 'tint',
