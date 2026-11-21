@@ -11,7 +11,8 @@ const order = {
   plate: 'AAA 123 AB',
   delivery: 'collection',
   channel: 'both',
-  consent: true
+  consent: true,
+  quotedTotalKobo: 538750
 };
 test('normalizes customer emails for order lookup', () => {
   assert.equal(orderSchema.parse(order).email, 'ada@example.com');
@@ -50,4 +51,27 @@ test('fleet enquiries require a company and positive vehicle count', () => {
     company: 'Unilever',
     fleetSize: 0
   }).success, false);
+});
+
+test('CMR and tint require a request type, the correct supporting evidence and vehicle confirmation', () => {
+  const base = { ...order, services: ['cmr', 'tint'] };
+  const licence = { token: 'example-licence', documentType: 'vehicle-licence' };
+  const poc = { token: 'example-poc', documentType: 'proof-of-ownership' };
+  const mixed = { ...base, requests: { cmr: 'new', tint: 'renewal' }, documentsBelongToVehicle: true };
+  assert.equal(orderSchema.safeParse(base).success, false);
+  assert.equal(orderSchema.safeParse(mixed).success, false);
+  assert.equal(orderSchema.safeParse({ ...mixed, uploads: [poc] }).success, false);
+  assert.equal(orderSchema.safeParse({ ...mixed, uploads: [licence], documentsBelongToVehicle: false }).success, false);
+  assert.equal(orderSchema.safeParse({ ...mixed, uploads: [licence] }).success, true);
+  assert.equal(orderSchema.safeParse({ ...mixed, requests: { cmr: 'renewal', tint: 'renewal' }, uploads: [poc] }).success, true);
+});
+
+test('allows insurance alone and rejects invalid values or unpriced vehicles', () => {
+  const base = { ...order, services: [], delivery: 'delivery', insurance: { kind: 'third-party' } };
+  assert.equal(orderSchema.safeParse(base).success, true);
+  assert.equal(orderSchema.safeParse({ ...base, vehicleType: 'Other / not sure' }).success, false);
+  for (const vehicleValue of [0, -10, 0.01, 20.001, Number.POSITIVE_INFINITY]) {
+    assert.equal(orderSchema.safeParse({ ...base, insurance: { kind: 'comprehensive', vehicleValue } }).success, false);
+  }
+  assert.equal(orderSchema.safeParse({ ...base, insurance: { kind: 'comprehensive', vehicleValue: 10_000_000 } }).success, true);
 });

@@ -9,11 +9,18 @@ import heroPhoto from '@/assets/hero-photo.webp';
 import heroDocuments from '@/assets/hero-documents.webp';
 import heroNumberPlate from '@/assets/hero-number-plate.webp';
 import registrationDocuments from '@/assets/registration-documents.webp';
+import primaryLogo from '@/assets/sureway-logo-primary.png';
 import BrandLogo from '@/components/brand-logo';
 import { useEffect, useRef, useState, type FormEvent } from 'react';
-import { ArrowRight, ArrowUpRight, Check, CheckCheck, ChevronDown, ChevronLeft, ChevronRight, FileText, ShieldCheck, CarFront, Truck, UserRound, UsersRound, ShoppingCart, Menu, X, Plus, Minus, MapPin, Mail, MessageCircle, Headset, PhoneCall, LockKeyhole, UploadCloud, Search, CircleHelp, Building2, Sparkles, Package, PackageCheck, LoaderCircle, CheckCircle2, Download } from 'lucide-react';
-import { services, vehicleTypes, calculatePricing, money, statusLabels, LAGOS_DELIVERY_FEE, type Delivery } from '@/lib/catalog';
+import { ArrowRight, ArrowUpRight, Check, CheckCheck, ChevronDown, ChevronLeft, ChevronRight, FileText, ShieldCheck, CarFront, Truck, UserRound, UsersRound, ShoppingCart, Menu, X, Plus, Minus, MapPin, Mail, MessageCircle, Headset, PhoneCall, Gauge, LockKeyhole, UploadCloud, Search, CircleHelp, Building2, Sparkles, Package, PackageCheck, LoaderCircle, CheckCircle2, Download } from 'lucide-react';
+import {
+  services, vehicleTypes, servicesForVehicle, calculatePricing, money, statusLabels,
+  LAGOS_DELIVERY_FEE, THIRD_PARTY_PREMIUM, COMPREHENSIVE_PERCENT, insuranceLabels,
+  requiredPermitUploads, uploadKinds, uploadKindLabels, validVehicleValue,
+  type Delivery, type VehicleType, type Insurance, type RequestKinds, type UploadKind
+} from '@/lib/catalog';
 type Panel = 'checkout' | 'fleet' | 'registration' | 'support' | 'track' | null;
+type CheckoutFile = { file: File; documentType: UploadKind };
 type Customer = {
   name: string;
   email: string;
@@ -37,7 +44,9 @@ const serviceIcons = {
   document: FileText,
   car: CarFront,
   person: UserRound,
-  shield: ShieldCheck
+  shield: ShieldCheck,
+  truck: Truck,
+  gauge: Gauge
 };
 const steps = [
   {
@@ -59,7 +68,7 @@ const steps = [
 const supportPhone = '+2348078672176';
 export default function Platform() {
   const [selected, setSelected] = useState<string[]>([]),
-    [vehicle, setVehicle] = useState<string>('Car'),
+    [vehicle, setVehicle] = useState<VehicleType>('Car'),
     [category, setCategory] = useState('All services'),
     [delivery, setDelivery] = useState<Delivery>('delivery');
   const [menu, setMenu] = useState(false),
@@ -70,15 +79,30 @@ export default function Platform() {
     [error, setError] = useState(''),
     [success, setSuccess] = useState('');
   const [customer, setCustomer] = useState<Customer>(initialCustomer),
-    [files, setFiles] = useState<File[]>([]),
+    [files, setFiles] = useState<CheckoutFile[]>([]),
     [consent, setConsent] = useState(false),
     [query, setQuery] = useState(''),
     [faqOpen, setFaqOpen] = useState<number | null>(null),
     [toast, setToast] = useState('');
   const [trackResult, setTrackResult] = useState<Record<string, unknown> | null>(null);
   const closeRef = useRef<HTMLButtonElement>(null);
-  const totals = calculatePricing(selected, delivery),
-    chosen = services.filter(s => selected.includes(s.id));
+  const [insuranceKind, setInsuranceKind] = useState<Insurance['kind'] | ''>('');
+  const [vehicleValue, setVehicleValue] = useState('');
+  const [requests, setRequests] = useState<RequestKinds>({});
+  const [documentsBelongToVehicle, setDocumentsBelongToVehicle] = useState(false);
+  const uploadCache = useRef(new WeakMap<File, { token: string; expiresAt: number }>());
+  const pendingOrder = useRef<{ payload: string; reference: string; accessToken: string } | null>(null);
+  const insurance: Insurance | undefined = insuranceKind === 'third-party' ? { kind: insuranceKind } :
+    insuranceKind === 'comprehensive' && validVehicleValue(Number(vehicleValue))
+      ? { kind: insuranceKind, vehicleValue: Number(vehicleValue) } : undefined;
+  const hasDocuments = selected.length > 0;
+  const needsDelivery = hasDocuments && delivery === 'delivery';
+  const totals = calculatePricing(selected, delivery, vehicle, insurance);
+  const { permits, kinds: requiredUploadKinds } = requiredPermitUploads(selected, requests);
+  const uploadRequirement = requiredUploadKinds.length === 1
+    ? 'Upload the Vehicle Licence for this vehicle.'
+    : 'Upload Proof of Ownership or the Vehicle Licence for this vehicle.';
+  const hasRequiredUpload = files.some(file => requiredUploadKinds.some(kind => kind === file.documentType));
   useEffect(() => {
     fetch('/api/config').then(r => r.ok ? r.json() : null).then(c => {
       if (c) setDemo(c.demo);
@@ -87,7 +111,14 @@ export default function Platform() {
       const saved = JSON.parse(localStorage.getItem('sureway-cart') || 'null');
       if (saved) {
         setSelected(saved.selected.filter((id: string) => services.some(s => s.id === id)));
-        setVehicle(saved.vehicle || 'Car');
+        if (vehicleTypes.includes(saved.vehicle)) {
+          setVehicle(saved.vehicle);
+          if (saved.vehicle === 'Other / not sure') setSelected([]);
+        }
+        if (saved.vehicle !== 'Other / not sure') {
+          if (saved.insuranceKind === 'third-party' || saved.insuranceKind === 'comprehensive') setInsuranceKind(saved.insuranceKind);
+          if (typeof saved.vehicleValue === 'string') setVehicleValue(saved.vehicleValue);
+        }
         setDelivery(saved.delivery === 'collection' ? 'collection' : 'delivery');
       }
     } catch {}
@@ -97,10 +128,12 @@ export default function Platform() {
       localStorage.setItem('sureway-cart', JSON.stringify({
         selected,
         vehicle,
-        delivery
+        delivery,
+        insuranceKind,
+        vehicleValue
       }));
     } catch {}
-  }, [selected, vehicle, delivery]);
+  }, [selected, vehicle, delivery, insuranceKind, vehicleValue]);
   useEffect(() => {
     if (!panel && !menu) return;
     const active = document.activeElement as HTMLElement;
@@ -138,8 +171,14 @@ export default function Platform() {
     const timer = setTimeout(() => setToast(''), 3500);
     return () => clearTimeout(timer);
   }, [toast]);
+  useEffect(() => {
+    if (panel === 'checkout') closeRef.current?.closest('.modal')?.scrollTo(0, 0);
+  }, [step, panel]);
   function toggle(id: string) {
     setSelected(s => s.includes(id) ? s.filter(v => v !== id) : [...s, id]);
+    if (id === 'cmr' || id === 'tint') {
+      setRequests(previous => ({ ...previous, [id]: undefined }));
+    }
   }
   function open(p: Panel) {
     setPanel(p);
@@ -155,21 +194,61 @@ export default function Platform() {
       behavior: 'smooth'
     });
   }
+  function selectVehicle(nextVehicle: VehicleType) {
+    if (vehicle === nextVehicle) return;
+    setVehicle(nextVehicle);
+    setFiles([]);
+    setDocumentsBelongToVehicle(false);
+    if (nextVehicle === 'Other / not sure') {
+      if (selected.length || insuranceKind) setToast('Cart cleared. Contact us for a quote for this vehicle.');
+      setSelected([]);
+      setInsuranceKind('');
+      setRequests({});
+    }
+  }
   function checkout() {
-    if (!selected.length) {
+    if (insuranceKind === 'comprehensive' && !insurance) {
+      const input = document.getElementById('insurance-value');
+      if (input) input.focus();
+      else {
+        setCategory('All services');
+        scrollServices();
+      }
+      setToast('Enter your vehicle value to calculate the comprehensive premium.');
+      return;
+    }
+    if (!hasDocuments && !insurance) {
       scrollServices();
-      setToast('Choose at least one document to get started.');
+      setToast('Choose a document or an insurance option to get started.');
       return;
     }
     open('checkout');
   }
   function field(key: keyof Customer, value: string) {
+    if ((key === 'plate' || key === 'make') && value !== customer[key]) {
+      setFiles([]);
+      setDocumentsBelongToVehicle(false);
+    }
     setCustomer(c => ({
       ...c,
       [key]: value
     }));
   }
+  function documentStepError() {
+    if (!permits.length) return '';
+    if (permits.some(id => !requests[id])) return 'Choose new or renewal for every CMR or Tint Permit request.';
+    if (!hasRequiredUpload) return uploadRequirement;
+    if (!documentsBelongToVehicle) return 'Confirm the uploaded documents belong to this vehicle.';
+    return '';
+  }
   async function pay() {
+    const uploadError = documentStepError();
+    if (uploadError) {
+      setStep(2);
+      setError(uploadError);
+      return;
+    }
+    const permitRequests = Object.fromEntries(permits.map(id => [id, requests[id]]));
     setError('');
     setBusy(true);
     try {
@@ -183,7 +262,10 @@ export default function Platform() {
           make: customer.make,
           plate: customer.plate,
           services: selected,
-          delivery,
+          delivery: hasDocuments ? delivery : 'collection',
+          insurance,
+          requests: permitRequests,
+          pricing: totals,
           total: totals.total,
           status: 'payment_pending',
           createdAt: new Date().toISOString()
@@ -193,34 +275,44 @@ export default function Platform() {
         setSuccess(reference);
         return;
       }
-      const uploadIds: string[] = [];
-      for (const file of files) {
-        const form = new FormData();
-        form.append('file', file);
-        const res = await fetch('/api/uploads', {
-          method: 'POST',
-          body: form
-        });
-        const data = await res.json();
-        if (!res.ok) throw new Error(data.error || 'Upload failed');
-        uploadIds.push(data.token);
+      const uploads = [];
+      for (const { file, documentType } of files) {
+        let cached = uploadCache.current.get(file);
+        if (!cached || cached.expiresAt < Date.now()) {
+          const form = new FormData();
+          form.append('file', file);
+          const res = await fetch('/api/uploads', { method: 'POST', body: form });
+          const data = await res.json();
+          if (!res.ok) throw new Error(data.error || 'Upload failed');
+          cached = { token: String(data.token), expiresAt: Date.now() + 55 * 60 * 1000 };
+          uploadCache.current.set(file, cached);
+        }
+        uploads.push({ token: cached.token, documentType });
       }
-      const response = await fetch('/api/orders', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-          ...customer,
-          services: selected,
-          vehicleType: vehicle,
-          delivery,
-          uploads: uploadIds,
-          consent
-        })
+      const payload = JSON.stringify({
+        ...customer,
+        services: selected,
+        vehicleType: vehicle,
+        delivery: hasDocuments ? delivery : 'collection',
+        requests: permitRequests,
+        insurance,
+        uploads,
+        documentsBelongToVehicle,
+        quotedTotalKobo: Math.round(totals.total * 100),
+        consent
       });
-      const order = await response.json();
-      if (!response.ok) throw new Error(order.error || 'Could not create your order');
+      let order = pendingOrder.current;
+      if (!order || order.payload !== payload) {
+        const response = await fetch('/api/orders', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: payload
+        });
+        const data = await response.json();
+        if (!response.ok) throw new Error(data.error || 'Could not create your order');
+        order = { payload, reference: data.reference, accessToken: data.accessToken };
+        pendingOrder.current = order;
+      }
       const payment = await fetch('/api/payments/initialize', {
         method: 'POST',
         headers: {
@@ -320,7 +412,7 @@ export default function Platform() {
       setBusy(false);
     }
   }
-  const visible = services.filter(s => (category === 'All services' || s.category === category) && (s.name + ' ' + s.description).toLowerCase().includes(query.toLowerCase()));
+  const visible = servicesForVehicle(vehicle).filter(s => (category === 'All services' || s.category === category) && (s.name + ' ' + s.description).toLowerCase().includes(query.toLowerCase()));
   return <>
  <div className="announcement"><span>Soft copies first. Hard copies delivered across Lagos.</span><a href="#how-it-works">See how it works <ArrowRight size={12} /></a></div>
  <header className="header"><div className="container header-inner"><BrandLogo /><nav aria-label="Main navigation"><a href="#services">Our services</a><a href="#how-it-works">How it works</a><button onClick={() => open('fleet')}>For organizations</button></nav><div className="header-actions"><button className="cart-button" onClick={checkout} aria-label={`Open order, ${selected.length} documents`}><ShoppingCart size={21} strokeWidth={1.5} /><span>{selected.length}</span></button><button className="button button-small desktop-start" onClick={scrollServices}>Get started <ArrowUpRight size={15} /></button><button className="menu-button" onClick={() => setMenu(true)} aria-label="Open menu"><Menu /></button></div></div></header>
@@ -377,7 +469,16 @@ export default function Platform() {
   </ul>
  </div>
  <section className="container services-section" id="services"><div className="section-heading"><div><div className="eyebrow">01 / FOR INDIVIDUALS</div><h2>Vehicle document <br className="mobile-break" /> we provide.</h2><p>Choose your vehicle, select your documents, and see exactly what you’ll pay.</p></div><span className="section-note"><span className="status-dot" /> Clear fees. No guesswork.</span></div>
- <div className="vehicle-select"><span>Your vehicle type</span><div role="group" aria-label="Vehicle type">{vehicleTypes.map(v => <button key={v} onClick={() => setVehicle(v)} className={vehicle === v ? 'active' : ''}>{v === 'Car' ? <CarFront size={16} /> : null}{v}</button>)}</div></div>
+ <div className="vehicle-select">
+  <span>Your vehicle type</span>
+  <div role="group" aria-label="Vehicle type">
+   {vehicleTypes.map(type => (
+    <button key={type} onClick={() => selectVehicle(type)} className={vehicle === type ? 'active' : ''} aria-pressed={vehicle === type}>
+     {type === 'Car' && <CarFront size={16} aria-hidden="true" />}{type}
+    </button>
+   ))}
+  </div>
+ </div>
  <div className="services-layout">
   <div className="catalog">
    <div className="category-tabs" role="group" aria-label="Service category">
@@ -390,7 +491,13 @@ export default function Platform() {
     <input type="search" aria-label="Search services" placeholder="Find a document…" value={query} onChange={e => setQuery(e.target.value)} />
     {query && <button onClick={() => setQuery('')} aria-label="Clear search"><X size={15} /></button>}
    </div>
-   {category !== 'Registration' && (
+   {category !== 'Registration' && (vehicle === 'Other / not sure' ? (
+    <div className="empty-search">
+     <h3>Need help choosing a vehicle category?</h3>
+     <p>Tell us about your vehicle and the documents you need for a quote.</p>
+     <button className="text-link" onClick={() => open('support')}>Request a quote <ArrowRight size={15} /></button>
+    </div>
+   ) : (
     <div className="service-grid">
      {visible.map(service => {
        const Icon = serviceIcons[service.icon];
@@ -402,10 +509,12 @@ export default function Platform() {
           <span className="select-indicator" aria-hidden="true">{isSelected ? <Check size={15} /> : <Plus size={15} />}</span>
          </div>
          <h3>{service.name}</h3>
-         <p>{service.description}</p>
+         <p>{service.description}
+          {(service.id === 'cmr' || service.id === 'tint') && <small className="service-requirement">New: Vehicle Licence. Renewal: Vehicle Licence or Proof of Ownership.</small>}
+         </p>
          <div className="service-pricing">
           <span><strong>{money(service.fee)}</strong><small>Document fee</small></span>
-          <span><b>+ {money(service.charge)}</b><small>Service charge</small></span>
+          <span><b>{service.charge ? `+ ${money(service.charge)}` : money(0)}</b><small>Service charge</small></span>
          </div>
         </button>
        );
@@ -422,7 +531,25 @@ export default function Platform() {
       </div>
      )}
     </div>
-   )}
+   ))}
+   {category !== 'Registration' && vehicle !== 'Other / not sure' && <section className="insurance-card" aria-labelledby="insurance-title">
+    <div className="insurance-intro">
+     <span className="tile-icon"><ShieldCheck aria-hidden="true" /></span>
+     <div><h3 id="insurance-title">Motor Vehicle Insurance</h3><p>Choose cover for your vehicle.</p></div>
+    </div>
+    <div className="insurance-options" role="group" aria-label="Insurance options">
+     <button type="button" aria-pressed={insuranceKind === 'third-party'} onClick={() => setInsuranceKind(insuranceKind === 'third-party' ? '' : 'third-party')}>
+      <span>Third-party insurance</span><strong>{money(THIRD_PARTY_PREMIUM)}</strong><small>Per vehicle</small>
+     </button>
+     <button type="button" aria-pressed={insuranceKind === 'comprehensive'} onClick={() => setInsuranceKind(insuranceKind === 'comprehensive' ? '' : 'comprehensive')}>
+      <span>Comprehensive insurance</span><strong>{COMPREHENSIVE_PERCENT}%</strong><small>of vehicle value</small>
+     </button>
+    </div>
+    {insuranceKind === 'comprehensive' && <div className="insurance-value">
+     <label>Vehicle value (₦)<input id="insurance-value" type="number" min="0.10" step="0.01" inputMode="decimal" placeholder="e.g. 10000000" value={vehicleValue} onChange={event => setVehicleValue(event.target.value)} /></label>
+     <p aria-live="polite">{insurance ? <>Estimated premium <strong>{money(totals.premium, totals.premium % 1 !== 0)}</strong></> : 'Enter the current value to calculate your premium.'}</p>
+    </div>}
+   </section>}
    <div className="registration-card">
     <div className="registration-art" aria-hidden="true">
      <Image src={registrationDocuments} alt="" fill sizes="(max-width: 640px) min(72vw, 380px), 520px" />
@@ -434,8 +561,38 @@ export default function Platform() {
    </div>
    <p className="price-note"><CircleHelp size={14} /> Document fees, service charges, VAT and delivery are shown separately.</p>
  </div>
- <aside className="order-summary" aria-label="Your order"><div className="order-title"><h3>Your order</h3><span>{selected.length} selected</span></div>{chosen.length ? <div className="order-items">{chosen.map(s => <div className="order-item" key={s.id}><span>{s.name}<small>{vehicle}</small></span><button onClick={() => toggle(s.id)} aria-label={`Remove ${s.name}`}><X size={16} /></button></div>)}</div> : <div className="empty-order"><span><FileText size={28} strokeWidth={1.2} /></span><p>A little less paperwork<br />starts here.</p><small>Select the documents you need<br />and we’ll take it from there.</small></div>}
- <div className="delivery-toggle" role="group" aria-label="Receive hard copies"><button className={delivery === 'delivery' ? 'active' : ''} onClick={() => setDelivery('delivery')}><Truck size={13} /> Delivery · {money(LAGOS_DELIVERY_FEE)}</button><button className={delivery === 'collection' ? 'active' : ''} onClick={() => setDelivery('collection')}>Collection · Free</button></div><dl className="order-costs"><div><dt>Document fees</dt><dd>{money(totals.documents)}</dd></div><div><dt>Service charges</dt><dd>{money(totals.charges)}</dd></div><div><dt>VAT on service charges (7.5%)</dt><dd>{money(totals.vat, true)}</dd></div><div><dt>{delivery === 'delivery' ? 'Lagos delivery' : 'Collection'}</dt><dd>{delivery === 'collection' ? 'Free' : money(totals.shipping)}</dd></div></dl><div className="order-total"><span>Total to pay</span><strong>{money(totals.total, totals.total % 1 !== 0)}</strong></div><button className="button" onClick={checkout}>Continue to vehicle details <ArrowRight size={16} /></button><p className="secure-note"><LockKeyhole size={11} /> Review everything before you pay</p><div className="paystack-note"><span className="paystack-bars"><i /><i /><i /><i /></span><span>Secured by <b>paystack</b></span></div></aside></div>
+ <aside className="order-summary" aria-label="Your order">
+  <div className="order-title"><h3>Your order</h3><span>{totals.items.length + (insuranceKind ? 1 : 0)} selected</span></div>
+  {vehicle !== 'Other / not sure' && <p className="order-vehicle">Vehicle category <strong>{vehicle}</strong></p>}
+  {hasDocuments || insuranceKind ? (
+   <div className="order-items">
+    {totals.items.map(item => <div className="order-item" key={item.id}>
+     <span>{item.name}<small>{money(item.fee)} document fee · {money(item.charge)} service charge</small></span>
+     <button onClick={() => toggle(item.id)} aria-label={`Remove ${item.name}`}><X size={16} /></button>
+    </div>)}
+    {insuranceKind && <div className="order-item">
+     <span>{insuranceLabels[insuranceKind]}<small>{insurance ? money(totals.premium, true) : 'Enter your vehicle value'}</small></span>
+     <button onClick={() => setInsuranceKind('')} aria-label="Remove insurance"><X size={16} /></button>
+    </div>}
+   </div>
+  ) : <div className="empty-order"><span><FileText size={28} strokeWidth={1.2} /></span><p>Start your order</p><small>Select documents or insurance for your vehicle.</small></div>}
+  {hasDocuments && <div className="delivery-toggle" role="group" aria-label="Receive hard copies">
+   <button className={delivery === 'delivery' ? 'active' : ''} aria-pressed={delivery === 'delivery'} onClick={() => setDelivery('delivery')}><Truck size={13} /> Delivery · {money(LAGOS_DELIVERY_FEE)}</button>
+   <button className={delivery === 'collection' ? 'active' : ''} aria-pressed={delivery === 'collection'} onClick={() => setDelivery('collection')}>Collection · Free</button>
+  </div>}
+  <dl className="order-costs">
+   <div><dt>Document fees</dt><dd>{money(totals.documents)}</dd></div>
+   <div><dt>Service charges</dt><dd>{money(totals.charges)}</dd></div>
+   {insurance && <div><dt>Insurance premium</dt><dd>{money(totals.premium, true)}</dd></div>}
+   <div><dt>VAT on service charges (7.5%)</dt><dd>{money(totals.vat, true)}</dd></div>
+   {hasDocuments && <div><dt>{needsDelivery ? 'Lagos delivery' : 'Collection'}</dt><dd>{needsDelivery ? money(totals.shipping) : 'Free'}</dd></div>}
+  </dl>
+  <div className="order-total"><span>{insuranceKind && !insurance ? 'Subtotal before insurance' : 'Total to pay'}</span><strong>{money(totals.total, totals.total % 1 !== 0)}</strong></div>
+  <button className="button" onClick={checkout}>Continue to vehicle details <ArrowRight size={16} /></button>
+  <p className="secure-note"><LockKeyhole size={11} /> Review everything before you pay</p>
+  <div className="paystack-note"><span className="paystack-bars"><i /><i /><i /><i /></span><span>Secured by <b>paystack</b></span></div>
+ </aside>
+ </div>
  </section>
  <section className="how-section" id="how-it-works" aria-labelledby="how-heading">
   <div className="container">
@@ -484,33 +641,118 @@ export default function Platform() {
             setCategory('Permits');
             scrollServices();
           }}><Check size={18} /> Permits & certificates</button><button onClick={() => open('registration')}><Plus size={18} /> New vehicle registration</button></div><button onClick={scrollServices}>All services <ArrowUpRight size={16} /></button><a href="#how-it-works" onClick={() => setMenu(false)}>How it works <ArrowUpRight size={16} /></a><button onClick={() => open('fleet')}>For organizations <ArrowUpRight size={16} /></button><button onClick={() => open('track')}>Track your order <ArrowUpRight size={16} /></button><button onClick={() => open('support')}>Get support <ArrowUpRight size={16} /></button><button className="button" onClick={() => open('support')}>Talk to our team <ArrowRight size={17} /></button></div></div>}
- {panel && <div className="modal-backdrop" onClick={() => !busy && setPanel(null)}><section className={'modal ' + (panel === 'checkout' ? 'checkout-modal' : '')} role="dialog" aria-modal="true" aria-labelledby="modal-title" onClick={e => e.stopPropagation()}><div className="modal-top"><span className="eyebrow">SUREWAY COMPLIANCE</span><button ref={closeRef} onClick={() => setPanel(null)} disabled={busy} aria-label="Close dialog"><X size={22} /></button></div>
+ {panel && <div className="modal-backdrop" onClick={() => !busy && setPanel(null)}><section className={'modal ' + (panel === 'checkout' ? 'checkout-modal' : '')} role="dialog" aria-modal="true" aria-labelledby="modal-title" onClick={e => e.stopPropagation()}><div className="modal-top">{panel === 'checkout' ? <Image className="checkout-logo" src={primaryLogo} alt="SureWay Compliance" sizes="146px" /> : <span className="eyebrow">SUREWAY COMPLIANCE</span>}<button ref={closeRef} onClick={() => setPanel(null)} disabled={busy} aria-label="Close dialog"><X size={22} /></button></div>
  {success ? <div className="success-panel"><span className="success-icon"><CheckCheck size={34} /></span><div className="eyebrow">{demo ? 'PREVIEW COMPLETE' : 'YOU’RE ALL SET'}</div><h2 id="modal-title">{success === 'enquiry' ? demo ? 'Your enquiry is ready.' : 'We’ll take it from here.' : 'Your preview order is ready.'}</h2><p>{demo ? success === 'enquiry' ? 'Saved in this browser for this preview. This enquiry has not been sent to the SureWay team.' : 'No payment has been taken and no request has been sent. Your preview order is saved in this browser.' : 'Our team has received your enquiry and will contact you to discuss the next steps.'}</p>{success !== 'enquiry' && <div className="reference-box"><small>YOUR ORDER REFERENCE</small><strong>{success}</strong><button className="text-link" onClick={() => {
               navigator.clipboard?.writeText(success);
               setToast('Order reference copied');
-            }}>Copy reference</button></div>}<button className="button" onClick={() => setPanel(null)}>Back to SureWay <ArrowRight size={17} /></button></div> : panel === 'checkout' ? <><h2 id="modal-title">Let’s get your documents sorted.</h2><p className="modal-description">Just a few details, and we’ll take it from here.</p><div className="checkout-steps">{['Your details', 'Documents', 'Review & pay'].map((label, i) => <span key={label} className={step === i + 1 ? 'active' : step > i + 1 ? 'done' : ''}><i>{step > i + 1 ? <Check size={12} /> : i + 1}</i>{label}</span>)}</div>
- {step === 1 && <form onSubmit={e => {
-            e.preventDefault();
-            setError('');
-            setStep(2);
-          }}><div className="form-section-label">YOUR CONTACT DETAILS</div><div className="form-grid"><label>Full name<input required autoComplete="name" value={customer.name} onChange={e => field('name', e.target.value)} placeholder="Your full name" minLength={2} maxLength={100} /></label><label>Email address<input required type="email" autoComplete="email" value={customer.email} onChange={e => field('email', e.target.value)} placeholder="you@example.com" /></label><label>Phone / WhatsApp number<input required type="tel" autoComplete="tel" pattern="[+0-9 ]{10,20}" value={customer.phone} onChange={e => field('phone', e.target.value)} placeholder="+234 800 000 0000" /></label><label>Receive soft copies via<select value={customer.channel} onChange={e => field('channel', e.target.value)}><option value="both">Email & WhatsApp</option><option value="email">Email only</option><option value="whatsapp">WhatsApp only</option></select></label></div><div className="form-section-label">YOUR VEHICLE</div><div className="form-grid"><label>Vehicle make & model<input required minLength={2} maxLength={100} value={customer.make} onChange={e => field('make', e.target.value)} placeholder="e.g. Toyota Corolla 2020" /></label><label>Registration / plate number<input required minLength={3} maxLength={30} value={customer.plate} onChange={e => field('plate', e.target.value.toUpperCase())} placeholder="e.g. AAA 123 AB" /></label></div>{delivery === 'delivery' && <label className="full-label">Delivery address in Lagos<textarea required minLength={10} maxLength={500} autoComplete="street-address" value={customer.address} onChange={e => field('address', e.target.value)} placeholder="Street address, area and nearest landmark" /><small>Delivery is currently available within Lagos only.</small></label>}<button className="button full-width" type="submit">Continue to documents <ArrowRight size={17} /></button></form>}
- {step === 2 && <div><div className="upload-intro"><FileText size={23} /><div><h3>Your existing documents</h3><p>Upload clear copies of your current vehicle licence, ownership papers or relevant permits.</p></div></div><label className="upload-zone"><UploadCloud size={29} /><b>Choose files to upload</b><span>PDF, JPG or PNG · up to 10 MB each · 10 files maximum</span><input type="file" multiple accept=".pdf,.jpg,.jpeg,.png" onChange={e => {
-                const next = Array.from(e.target.files || []);
-                if (next.some(f => f.size > 10 * 1024 * 1024)) {
-                  setError('Each file must be 10 MB or smaller.');
-                  return;
-                }
-                if (files.length + next.length > 10) {
-                  setError('Upload a maximum of 10 files.');
-                  return;
-                }
-                setError('');
-                setFiles(prev => [...prev, ...next]);
-              }} /></label><div className="file-list">{files.map((f, i) => <div key={i}><FileText size={17} /><span>{f.name}<small>{(f.size / 1024).toFixed(0)} KB</small></span><button onClick={() => setFiles(files.filter((_, j) => j !== i))} aria-label={`Remove ${f.name}`}><X size={16} /></button></div>)}</div><div className="info-box"><ShieldCheck size={18} /><span>Your documents are kept private. If a document is missing, you can continue and our team will follow up.</span></div><div className="modal-actions"><button className="back-button" onClick={() => setStep(1)}><ChevronLeft size={16} /> Back</button><button className="button" onClick={() => {
-                setError('');
-                setStep(3);
-              }}>Review your order <ArrowRight size={17} /></button></div></div>}
- {step === 3 && <div><div className="review-contact"><span><b>{customer.name}</b><small>{customer.email} · {customer.phone}</small></span><button className="text-link" onClick={() => setStep(1)}>Edit</button></div><div className="review-vehicle"><CarFront size={20} /><span>{customer.make} <b>{customer.plate}</b></span><small>{vehicle}</small></div><div className="review-items">{chosen.map(s => <div key={s.id}><span>{s.name}</span><b>{money(s.fee + s.charge)}</b></div>)}</div><dl className="review-totals"><div><dt>Document fees</dt><dd>{money(totals.documents)}</dd></div><div><dt>Service charges</dt><dd>{money(totals.charges)}</dd></div><div><dt>VAT on service charges (7.5%)</dt><dd>{money(totals.vat, true)}</dd></div><div><dt>{delivery === 'delivery' ? 'Lagos delivery' : 'Free collection'}</dt><dd>{money(totals.shipping)}</dd></div><div className="review-total"><dt>Total to pay</dt><dd>{money(totals.total, true)}</dd></div></dl><div className="info-box"><PackageCheck size={18} /><span>{delivery === 'delivery' ? customer.address : 'We’ll confirm the collection point when your documents are ready.'}<br />Soft copies via {customer.channel === 'both' ? 'email & WhatsApp' : customer.channel} · {files.length} file{files.length === 1 ? '' : 's'} attached</span></div><label className="checkbox-label"><input type="checkbox" checked={consent} onChange={e => setConsent(e.target.checked)} /><span>I confirm my details are correct and consent to SureWay using them to process this request and contact me about my documents.</span></label>{demo && <div className="demo-notice">This is a preview. Your details stay in this browser and no payment will be taken. Fees are illustrative until confirmed by SureWay.</div>}<div className="modal-actions"><button className="back-button" onClick={() => setStep(2)} disabled={busy}><ChevronLeft size={16} /> Back</button><button className="button" onClick={pay} disabled={!consent || busy}>{busy ? <LoaderCircle className="spin" size={17} /> : <LockKeyhole size={15} />} {demo ? 'Create preview order' : `Pay ${money(totals.total, true)}`}<ArrowRight size={16} /></button></div>{!demo && <p className="modal-footnote">You’ll be redirected to Paystack to complete your payment securely.</p>}</div>}
+            }}>Copy reference</button></div>}<button className="button" onClick={() => setPanel(null)}>Back to SureWay <ArrowRight size={17} /></button></div> : panel === 'checkout' ? <><h2 id="modal-title">Let’s get your documents sorted.</h2><p className="modal-description">Just a few details, and we’ll take it from here.</p><div className="checkout-steps">{['Your details', 'Documents', 'Review & pay'].map((label, i) => <span key={label} aria-current={step === i + 1 ? 'step' : undefined} className={step === i + 1 ? 'active' : step > i + 1 ? 'done' : ''}><i>{step > i + 1 ? <Check size={12} /> : i + 1}</i>{label}</span>)}</div>
+ {step === 1 && <form className="checkout-details" onSubmit={event => {
+   event.preventDefault();
+   setError('');
+   setStep(2);
+ }}>
+  <div className="form-section-label">Your contact details</div>
+  <div className="form-grid">
+   <label>Full name<input required autoComplete="name" value={customer.name} onChange={event => field('name', event.target.value)} placeholder="Your full name" minLength={2} maxLength={100} /></label>
+   <label>Email address<input required type="email" autoComplete="email" value={customer.email} onChange={event => field('email', event.target.value)} placeholder="you@example.com" /></label>
+   <label>Phone / WhatsApp number<input required type="tel" autoComplete="tel" pattern="[+0-9 ]{10,20}" value={customer.phone} onChange={event => field('phone', event.target.value)} placeholder="+234 800 000 0000" /></label>
+   <label>Receive soft copies via<select value={customer.channel} onChange={event => field('channel', event.target.value)}><option value="both">Email &amp; WhatsApp</option><option value="email">Email only</option><option value="whatsapp">WhatsApp only</option></select></label>
+  </div>
+  <div className="form-section-label">Your vehicle · {vehicle}</div>
+  <div className="form-grid">
+   <label>Vehicle make &amp; model<input required minLength={2} maxLength={100} value={customer.make} onChange={event => field('make', event.target.value)} placeholder="e.g. Toyota Corolla 2020" /></label>
+   <label>Registration / plate number<input required minLength={3} maxLength={30} value={customer.plate} onChange={event => field('plate', event.target.value.toUpperCase())} placeholder="e.g. AAA 123 AB" /></label>
+   {needsDelivery && <label className="full-label">Delivery address in Lagos<textarea required minLength={10} maxLength={500} autoComplete="street-address" value={customer.address} onChange={event => field('address', event.target.value)} placeholder="Street address, area and nearest landmark" /><small>Delivery is currently available within Lagos only.</small></label>}
+  </div>
+  {permits.length > 0 && <>
+   <div className="form-section-label">Permit requests</div>
+   <div className="form-grid">
+    {permits.map(id => <label key={id}>{id === 'cmr' ? 'Central Motor Registry (CMR)' : 'Tint Permit'}
+     <select required value={requests[id] ?? ''} onChange={event => {
+       setRequests(previous => ({ ...previous, [id]: event.target.value === 'new' ? 'new' : event.target.value === 'renewal' ? 'renewal' : undefined }));
+       setDocumentsBelongToVehicle(false);
+     }}><option value="">Choose request type</option><option value="new">New</option><option value="renewal">Renewal</option></select>
+    </label>)}
+   </div>
+   <p className="modal-footnote">{permits.every(id => requests[id]) ? uploadRequirement : 'New requests require the Vehicle Licence. Renewals require the Vehicle Licence or Proof of Ownership.'}</p>
+  </>}
+  <button className="button full-width" type="submit">Continue to documents <ArrowRight size={17} /></button>
+ </form>}
+ {step === 2 && <div>
+  <div className="upload-intro"><FileText size={23} /><div><h3>Your existing documents</h3><p>{permits.length ? uploadRequirement : 'Upload any relevant documents you’d like our team to review.'}</p></div></div>
+  <label className="upload-zone"><UploadCloud size={29} /><b>Choose files to upload</b><span>PDF, JPG or PNG · up to 10 MB each · 10 files maximum</span>
+   <input type="file" multiple accept=".pdf,.jpg,.jpeg,.png" onChange={event => {
+     const next = Array.from(event.currentTarget.files || []);
+     event.currentTarget.value = '';
+     if (next.some(file => !/\.(pdf|jpe?g|png)$/i.test(file.name) || !file.size || file.size > 10 * 1024 * 1024)) {
+       setError('Choose non-empty PDF, JPG or PNG files up to 10 MB each.');
+       return;
+     }
+     if (files.length + next.length > 10) {
+       setError('Upload a maximum of 10 files.');
+       return;
+     }
+     setError('');
+     setDocumentsBelongToVehicle(false);
+     setFiles(previous => [...previous, ...next.map(file => ({ file, documentType: 'other' as const }))]);
+   }} />
+  </label>
+  <div className="file-list">{files.map(({file, documentType}, index) => <div className="checkout-file" key={index}>
+   <FileText size={17} /><span>{file.name}<small>{(file.size / 1024).toFixed(0)} KB</small></span>
+   {permits.length > 0 && <select aria-label={`Document type for ${file.name}`} value={documentType} onChange={event => {
+     const kind = event.target.value as UploadKind;
+     setFiles(previous => previous.map((entry, i) => i === index ? { ...entry, documentType: kind } : entry));
+     setDocumentsBelongToVehicle(false);
+     setError('');
+   }}>{uploadKinds.map(kind => <option key={kind} value={kind}>{uploadKindLabels[kind]}</option>)}</select>}
+   <button onClick={() => {
+     setFiles(previous => previous.filter((_, i) => i !== index));
+     setDocumentsBelongToVehicle(false);
+     setError('');
+   }} aria-label={`Remove ${file.name}`}><X size={16} /></button>
+  </div>)}</div>
+  {permits.length > 0 && <label className="checkbox-label"><input type="checkbox" checked={documentsBelongToVehicle} onChange={event => {
+    setDocumentsBelongToVehicle(event.target.checked);
+    setError('');
+  }} /><span>I confirm the supporting documents belong to {customer.plate}.</span></label>}
+  <div className="info-box"><ShieldCheck size={18} /><span>{permits.length ? 'Your documents are kept private. Add and identify the required document before continuing.' : 'Your documents are kept private. You may continue without optional uploads.'}</span></div>
+  <div className="modal-actions">
+   <button className="back-button" onClick={() => { setError(''); setStep(1); }}><ChevronLeft size={16} /> Back</button>
+   <button className="button" onClick={() => {
+     const message = documentStepError();
+     setError(message);
+     if (!message) setStep(3);
+   }}>Review your order <ArrowRight size={17} /></button>
+  </div>
+ </div>}
+ {step === 3 && <div>
+  <div className="review-contact"><span><b>{customer.name}</b><small>{customer.email} · {customer.phone}</small></span><button className="text-link" onClick={() => setStep(1)}>Edit</button></div>
+  <div className="review-vehicle"><CarFront size={20} /><span>{customer.make} <b>{customer.plate}</b></span><small>{vehicle}</small></div>
+  <div className="review-items">{totals.items.map(item => <div key={item.id}>
+   <span>{item.name}{(item.id === 'cmr' || item.id === 'tint') && ` · ${requests[item.id] === 'new' ? 'New' : 'Renewal'}`}<small>{money(item.fee)} document fee · {money(item.charge)} service charge</small></span>
+   <b>{money(item.fee + item.charge)}</b>
+  </div>)}</div>
+  <dl className="review-totals">
+   <div><dt>Document fees</dt><dd>{money(totals.documents)}</dd></div>
+   <div><dt>Service charges</dt><dd>{money(totals.charges)}</dd></div>
+   {insurance && <div><dt>{insuranceLabels[insurance.kind]} premium</dt><dd>{money(totals.premium, true)}</dd></div>}
+   <div><dt>VAT on service charges (7.5%)</dt><dd>{money(totals.vat, true)}</dd></div>
+   {hasDocuments && <div><dt>{needsDelivery ? 'Lagos delivery' : 'Free collection'}</dt><dd>{money(totals.shipping)}</dd></div>}
+   <div className="review-total"><dt>Total to pay</dt><dd>{money(totals.total, true)}</dd></div>
+  </dl>
+  <div className="info-box"><PackageCheck size={18} /><span>
+   {hasDocuments && <>{needsDelivery ? customer.address : 'We’ll confirm the collection point when your documents are ready.'}<br /></>}
+   Soft copies via {customer.channel === 'both' ? 'email & WhatsApp' : customer.channel} · {files.length} file{files.length === 1 ? '' : 's'} attached
+  </span></div>
+  <label className="checkbox-label"><input type="checkbox" checked={consent} onChange={event => setConsent(event.target.checked)} /><span>I confirm my details are correct and consent to SureWay using them to process this request and contact me about my documents.</span></label>
+  {demo && <div className="demo-notice">This is a preview. Your details stay in this browser and no payment will be taken. Fees are illustrative until confirmed by SureWay.</div>}
+  <div className="modal-actions">
+   <button className="back-button" onClick={() => { setError(''); setStep(2); }} disabled={busy}><ChevronLeft size={16} /> Back</button>
+   <button className="button" onClick={pay} disabled={!consent || busy}>{busy ? <LoaderCircle size={18} className="spin" /> : <LockKeyhole size={15} />} {demo ? 'Create preview order' : `Pay ${money(totals.total, true)}`}<ArrowRight size={16} /></button>
+  </div>
+  {!demo && <p className="modal-footnote">You’ll be redirected to Paystack to complete your payment securely.</p>}
+ </div>}
+
  </> : panel === 'track' ? <><span className="modal-feature-icon"><PackageCheck size={26} /></span><h2 id="modal-title">A quick check on your order.</h2><p className="modal-description">Enter the reference and email you used when ordering.</p><form onSubmit={track} className="stacked-form"><label>Order reference<input name="reference" required placeholder="SW-…" autoComplete="off" /></label><label>Email address<input name="email" type="email" required placeholder="you@example.com" /></label><button className="button" disabled={busy}>{busy ? <LoaderCircle size={18} className="spin" /> : <Search size={17} />} Find my order</button></form>{trackResult && <div className="tracking-result"><span className="tracking-status"><span className="status-dot" />{statusLabels[String(trackResult.status)] || 'Received'}</span><h3>{String(trackResult.reference)}</h3><p>{String(trackResult.make)} · {String(trackResult.plate)}</p><b>{money(Number(trackResult.total), true)}</b><div className="tracking-timeline">{['paid', 'processing', 'soft_copies_ready', 'completed'].map((status, i) => <div key={status} className={['paid', 'processing', 'soft_copies_ready', 'ready_for_collection', 'out_for_delivery', 'completed'].indexOf(String(trackResult.status)) >= ['paid', 'processing', 'soft_copies_ready', 'ready_for_collection', 'out_for_delivery', 'completed'].indexOf(status) ? 'done' : ''}><span>{i + 1}</span>{statusLabels[status]}</div>)}</div>{Array.isArray(trackResult.documents) && trackResult.documents.map((doc: {
               name: string;
               url: string;

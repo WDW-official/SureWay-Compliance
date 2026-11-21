@@ -699,6 +699,108 @@ button.feature-tile:hover{
 .selected .service-pricing small{
   color:var(--panel-muted)
 }
+.service-requirement{
+  display:block;
+  margin-top:7px;
+  color:var(--accent-ink);
+  font-size:.9em;
+  line-height:1.4
+}
+.selected .service-requirement{
+  color:var(--panel-muted)
+}
+.insurance-card{
+  display:grid;
+  grid-template-columns:minmax(0,1fr) minmax(0,1.45fr);
+  gap:15px;
+  margin-top:19px;
+  padding:16px;
+  border:1px solid #edc757;
+  border-radius:17px;
+  background:linear-gradient(120deg,#ffe699,#fff0b6);
+  color:var(--ink)
+}
+.insurance-intro{
+  display:flex;
+  align-items:flex-start;
+  gap:9px
+}
+.insurance-intro .tile-icon{
+  flex-shrink:0
+}
+.insurance-intro h3{
+  font-size:15px;
+  font-weight:800;
+  line-height:1.25
+}
+.insurance-intro p,.insurance-options small{
+  font-size:11px;
+  line-height:1.4
+}
+.insurance-intro p{
+  margin-top:4px
+}
+.insurance-options{
+  display:grid;
+  grid-template-columns:repeat(2,minmax(0,1fr));
+  gap:8px
+}
+.insurance-options button{
+  display:grid;
+  align-content:start;
+  justify-items:center;
+  gap:3px;
+  min-width:0;
+  padding:8px 5px;
+  border:1px solid #8b620030;
+  border-radius:10px;
+  line-height:1.25;
+  font-size:11px;
+  font-weight:700
+}
+.insurance-options button:hover,.insurance-options button[aria-pressed=true]{
+  border-color:var(--accent-ink);
+  background:#fff8dc
+}
+.insurance-options strong{
+  font-size:22px;
+  line-height:1
+}
+.insurance-options small{
+  font-weight:500
+}
+.insurance-value{
+  grid-column:1/-1;
+  display:grid;
+  grid-template-columns:minmax(0,1fr) minmax(0,1fr);
+  gap:12px;
+  align-items:end;
+  font-size:12px
+}
+.insurance-value label{
+  display:grid;
+  gap:4px;
+  font-weight:700
+}
+.insurance-value label input{
+  font-size:16px
+}
+.insurance-value p{
+  line-height:1.35;
+  padding-bottom:4px
+}
+.insurance-value strong{
+  display:block;
+  font-size:18px
+}
+.order-vehicle{
+  margin-top:12px;
+  color:var(--panel-muted);
+  font-size:12px
+}
+.order-vehicle strong{
+  color:var(--panel-text)
+}
 .price-note{
   font-size:9px;
   color:var(--muted);
@@ -1364,6 +1466,31 @@ footer{
   color:var(--accent-ink);
   margin-bottom:17px
 }
+.checkout-logo{
+  width:146px;
+  height:auto
+}
+.checkout-details .form-section-label{
+  text-transform:uppercase;
+  font-size:11px
+}
+.checkout-details label{
+  font-size:13px
+}
+.checkout-details input,.checkout-details select,.checkout-details textarea{
+  font-size:16px;
+  min-height:44px
+}
+.checkout-file>select{
+  width:min(44%,175px);
+  padding:7px 5px;
+  font-size:12px
+}
+.review-items small{
+  display:block;
+  color:var(--muted);
+  font-size:10px
+}
 .checkout-steps{
   display:flex;
   justify-content:space-between;
@@ -1827,7 +1954,7 @@ textarea{
   padding:clamp(16px,4vw,32px);
   background:white
 }
-.service-grid+.registration-card{
+.service-grid+.registration-card,.insurance-card+.registration-card{
   margin-top:19px
 }
 .registration-art{
@@ -2298,6 +2425,20 @@ textarea{
   }
   .service-pricing small{
     font-size:9px
+  }
+  .insurance-card{
+    grid-template-columns:minmax(0,1fr);
+    gap:10px;
+    padding:12px
+  }
+  .checkout-details .form-grid{
+    grid-template-columns:minmax(0,1fr)
+  }
+  .checkout-modal .checkout-steps>span{
+    font-size:clamp(9px,2.8vw,13px)
+  }
+  .checkout-modal .upload-zone input{
+    font-size:12px
   }
   .price-note{
     font-size:8px;

@@ -18,12 +18,20 @@ export async function POST(request: Request) {
     const data = parsed.data;
     const reference = 'SW-' + randomBytes(8).toString('hex').toUpperCase();
     const accessToken = randomToken();
-    const pricing = calculatePricing(data.services, data.delivery);
-    const uploads = data.uploads.map(resolveUpload);
+    const pricing = calculatePricing(data.services, data.delivery, data.vehicleType, data.insurance);
+    if (Math.round(pricing.total * 100) !== data.quotedTotalKobo) {
+      return NextResponse.json({ error: 'Your price has changed. Refresh the page and review the updated total.' }, { status: 409 });
+    }
+    const uploads = data.uploads.map(({ token, documentType }) => ({ ...resolveUpload(token), documentType }));
+    if (new Set(uploads.map(file => file.publicId)).size !== uploads.length) {
+      return NextResponse.json({ error: 'Upload each document only once.' }, { status: 400 });
+    }
     await indexes();
     await (await db()).collection('orders').insertOne({
       ...data,
       uploads,
+      delivery: data.services.length ? data.delivery : 'collection',
+      address: pricing.shipping ? data.address : '',
       services: [...new Set(data.services)],
       reference,
       accessTokenHash: hash(accessToken),

@@ -1,7 +1,7 @@
 import 'server-only';
 import { db } from './server';
 import { download, type StoredFile } from './files';
-import { money, services } from './catalog';
+import { money, services, insuranceLabels, type Insurance } from './catalog';
 export async function queue(key: string, to: string, subject: string, text: string, phone?: string, files: StoredFile[] = []) {
   const database = await db();
   await database.collection('notification_jobs').updateOne({
@@ -164,7 +164,9 @@ export async function retryNotifications() {
   };
 }
 export async function notifyPaid(order: Record<string, unknown>) {
-  const names = (order.services as string[]).map(id => services.find(s => s.id === id)?.name).join(', ');
-  await queue(`paid-${order.reference}`, String(order.email), `SureWay: payment received · ${order.reference}`, `Hello ${order.name},\n\nYour payment of ${money(Number(order.total), true)} is confirmed.\nDocuments: ${names}\nVehicle: ${order.make} (${order.plate})\nReference: ${order.reference}\n\nTrack your request at ${process.env.APP_URL} using your reference and email. Our team will follow up with the next steps.`);
+  const names = (order.services as string[]).map(id => services.find(s => s.id === id)?.name).filter(Boolean);
+  const insurance = order.insurance as Insurance | undefined;
+  const items = [...names, ...(insurance ? [insuranceLabels[insurance.kind]] : [])].join(', ');
+  await queue(`paid-${order.reference}`, String(order.email), `SureWay: payment received · ${order.reference}`, `Hello ${order.name},\n\nYour payment of ${money(Number(order.total), true)} is confirmed.\nItems: ${items}\nVehicle: ${order.make} (${order.plate})\nReference: ${order.reference}\n\nTrack your request at ${process.env.APP_URL} using your reference and email. Our team will follow up with the next steps.`);
   if (process.env.TEAM_EMAIL) await queue(`team-${order.reference}`, process.env.TEAM_EMAIL, `New paid order · ${order.reference}`, `A new paid order is ready for processing. Reference: ${order.reference}. Review it in ${process.env.APP_URL}/admin.`);
 }
