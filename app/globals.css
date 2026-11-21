@@ -419,32 +419,34 @@ button.feature-tile:hover{
   box-shadow:0 3px 8px #201c1540
 }
 .promise-strip{
-  margin-top:23px;
+  margin:23px 0 0;
+  padding:clamp(10px,2vw,22px) 0;
   background:var(--surface-warm);
   border:1px solid var(--line);
-  border-radius:12px;
-  min-height:53px;
-  padding:15px 22px;
-  display:flex;
-  align-items:center;
-  justify-content:space-between;
-  gap:15px
+  border-radius:22px;
+  display:grid;
+  grid-template-columns:minmax(0,1fr) minmax(0,1.02fr) minmax(0,1.42fr)
 }
-.promise-strip>span{
+.promise-strip>li{
   display:flex;
-  align-items:center;
-  gap:8px;
-  font-size:10px;
-  color:var(--muted)
+  align-items:flex-start;
+  gap:clamp(4px,1.2vw,13px);
+  padding-inline:clamp(6px,1.8vw,22px);
+  color:var(--ink);
+  font-size:clamp(8px,2.05vw,14px);
+  font-weight:500;
+  line-height:1.3
+}
+.promise-strip>li+li{
+  border-inline-start:1px solid var(--line-strong)
 }
 .promise-strip svg{
+  width:clamp(12px,3vw,24px);
+  height:clamp(12px,3vw,24px);
   color:var(--accent-ink)
 }
-.promise-strip .promise-tag{
-  font-size:9px;
-  color:var(--accent-ink);
-  border-left:1px solid var(--line-strong);
-  padding-left:25px
+.promise-strip strong{
+  font-weight:800
 }
 .services-section{
   padding-top:73px;
@@ -696,44 +698,6 @@ button.feature-tile:hover{
 }
 .selected .service-pricing small{
   color:var(--panel-muted)
-}
-.registration-nudge{
-  display:flex;
-  align-items:center;
-  gap:12px;
-  border:1px dashed var(--line-strong);
-  border-radius:13px;
-  padding:16px;
-  margin-top:19px
-}
-.nudge-icon{
-  display:grid;
-  place-items:center;
-  width:34px;
-  height:34px;
-  background:var(--surface-tint);
-  border-radius:10px;
-  color:var(--accent-ink)
-}
-.registration-nudge b{
-  font-size:11px;
-  display:block
-}
-.registration-nudge small{
-  font-size:10px;
-  color:var(--muted);
-  display:block;
-  margin-top:4px
-}
-.registration-nudge button{
-  margin-left:auto;
-  display:flex;
-  align-items:center;
-  gap:8px;
-  font-size:10px;
-  color:var(--accent-ink);
-  font-weight:700;
-  white-space:nowrap
 }
 .price-note{
   font-size:9px;
@@ -1855,25 +1819,50 @@ textarea{
   font-size:11px
 }
 .registration-card{
+  position:relative;
+  isolation:isolate;
+  overflow:hidden;
   border:1px solid var(--line);
   border-radius:20px;
-  padding:35px;
-  background:white;
-  min-height:400px
+  padding:clamp(16px,4vw,32px);
+  background:white
+}
+.service-grid+.registration-card{
+  margin-top:19px
+}
+.registration-art{
+  position:absolute;
+  z-index:-1;
+  inset:0 0 auto auto;
+  width:min(85%,560px);
+  height:clamp(170px,47vw,285px);
+  mask-image:linear-gradient(90deg,transparent,#000 30%),linear-gradient(0deg,transparent,#000 40%);
+  mask-composite:intersect
+}
+.registration-art img{
+  object-fit:cover;
+  object-position:right 30%
 }
 .registration-card h3{
-  font-size:26px;
+  font-size:clamp(21px,5.6vw,34px);
   font-weight:800;
-  max-width:350px;
-  margin:27px 0 15px;
-  letter-spacing:-.6px
+  line-height:1.18;
+  max-width:16ch;
+  margin:clamp(60px,17vw,112px) 0 10px;
+  letter-spacing:-.025em
 }
 .registration-card p{
   color:var(--muted);
-  font-size:12px;
-  line-height:1.9;
-  max-width:420px;
-  margin-bottom:25px
+  font-size:clamp(12px,3.25vw,15px);
+  line-height:1.55;
+  max-width:52ch;
+  margin-bottom:17px
+}
+.registration-card>.button{
+  min-height:42px;
+  padding:11px 18px;
+  font-size:clamp(11px,3.2vw,14px);
+  gap:12px
 }
 .empty-search{
   grid-column:1/-1;
@@ -1914,12 +1903,6 @@ textarea{
   .header nav{
     gap:25px;
     margin-left:0
-  }
-  .promise-strip{
-    padding:15px
-  }
-  .promise-strip .promise-tag{
-    display:none
   }
   .services-layout{
     grid-template-columns:minmax(0,1fr) 290px;
@@ -1994,13 +1977,6 @@ textarea{
   .tile-contact a{
     font-size:11px
   }
-  .promise-strip>span{
-    font-size:8px;
-    gap:5px
-  }
-  .promise-strip svg{
-    width:14px
-  }
   .section-heading h2{
     font-size:30px
   }
@@ -2074,22 +2050,6 @@ textarea{
   }
   .order-costs dt,.order-costs dd{
     font-size:8px
-  }
-  .registration-nudge{
-    padding:12px;
-    gap:7px
-  }
-  .registration-nudge b{
-    font-size:9px
-  }
-  .registration-nudge small{
-    font-size:8px
-  }
-  .registration-nudge button{
-    font-size:9px
-  }
-  .registration-nudge .nudge-icon{
-    display:none
   }
   .price-note{
     font-size:8px;
@@ -2248,31 +2208,6 @@ textarea{
   .tile-contact a{
     font-size:clamp(8px,2.45vw,11px)
   }
-  .promise-strip{
-    padding:15px 13px;
-    display:grid;
-    grid-template-columns:1fr 1fr;
-    gap:9px;
-    margin-top:24px;
-    border-radius:14px
-  }
-  .promise-strip>span{
-    font-size:8px;
-    gap:5px
-  }
-  .promise-strip>span:first-child{
-    grid-column:1/-1
-  }
-  .promise-strip>span:nth-child(2){
-    font-size:7px
-  }
-  .promise-strip>span:nth-child(3){
-    font-size:7px
-  }
-  .promise-strip>span svg{
-    width:12px;
-    height:12px
-  }
   .services-section{
     padding-top:48px;
     padding-bottom:45px
@@ -2364,29 +2299,19 @@ textarea{
   .service-pricing small{
     font-size:9px
   }
-  .registration-nudge{
-    padding:14px 13px;
-    gap:8px
-  }
-  .registration-nudge b{
-    font-size:10px
-  }
-  .registration-nudge small{
-    font-size:8px
-  }
-  .registration-nudge button{
-    font-size:9px;
-    gap:5px
-  }
-  .registration-nudge .nudge-icon{
-    display:grid;
-    width:30px;
-    height:30px
-  }
   .price-note{
     font-size:8px;
     margin-top:15px;
     line-height:1.7
+  }
+  .registration-art{
+    width:min(72%,380px);
+    height:auto;
+    aspect-ratio:3/2;
+    mask-image:linear-gradient(90deg,transparent,#000 24%),linear-gradient(0deg,transparent,#000 28%)
+  }
+  .registration-art img{
+    object-position:right top
   }
   .order-summary{
     position:static;
@@ -2676,13 +2601,6 @@ textarea{
     max-width:90%;
     padding:13px 15px;
     bottom:40px
-  }
-  .registration-card{
-    padding:25px;
-    min-height:360px
-  }
-  .registration-card h3{
-    font-size:24px
   }
   .mobile-menu-backdrop{
     align-items:flex-start;

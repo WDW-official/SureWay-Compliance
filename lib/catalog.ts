@@ -55,6 +55,7 @@ export const services = [{
 }] as const;
 export const vehicleTypes = ['Car', 'SUV', 'Pickup', 'Truck / van', 'Bus', 'Other / not sure'] as const;
 export type Delivery = 'delivery' | 'collection';
+export const LAGOS_DELIVERY_FEE = 5000;
 export function calculatePricing(ids: string[], delivery: Delivery) {
   const unique = [...new Set(ids)];
   const selected = unique.map(id => {
@@ -65,7 +66,7 @@ export function calculatePricing(ids: string[], delivery: Delivery) {
   const documents = selected.reduce((sum, s) => sum + s.fee, 0);
   const charges = selected.reduce((sum, s) => sum + s.charge, 0);
   const vat = Math.round(charges * 0.075 * 100) / 100;
-  const shipping = selected.length && delivery === 'delivery' ? 5000 : 0;
+  const shipping = selected.length && delivery === 'delivery' ? LAGOS_DELIVERY_FEE : 0;
   return {
     documents,
     charges,

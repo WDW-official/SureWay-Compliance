@@ -8,10 +8,11 @@ import receiveDocuments from '@/assets/how-receive-documents.webp';
 import heroPhoto from '@/assets/hero-photo.webp';
 import heroDocuments from '@/assets/hero-documents.webp';
 import heroNumberPlate from '@/assets/hero-number-plate.webp';
+import registrationDocuments from '@/assets/registration-documents.webp';
 import BrandLogo from '@/components/brand-logo';
 import { useEffect, useRef, useState, type FormEvent } from 'react';
-import { ArrowRight, ArrowUpRight, Check, CheckCheck, ChevronDown, ChevronLeft, ChevronRight, FileText, ShieldCheck, CarFront, Truck, UserRound, UsersRound, ShoppingCart, Menu, X, Plus, Minus, MapPin, Mail, MessageCircle, Headset, PhoneCall, LockKeyhole, UploadCloud, Search, CircleHelp, Building2, Sparkles, PackageCheck, LoaderCircle, CheckCircle2, Download } from 'lucide-react';
-import { services, vehicleTypes, calculatePricing, money, statusLabels, type Delivery } from '@/lib/catalog';
+import { ArrowRight, ArrowUpRight, Check, CheckCheck, ChevronDown, ChevronLeft, ChevronRight, FileText, ShieldCheck, CarFront, Truck, UserRound, UsersRound, ShoppingCart, Menu, X, Plus, Minus, MapPin, Mail, MessageCircle, Headset, PhoneCall, LockKeyhole, UploadCloud, Search, CircleHelp, Building2, Sparkles, Package, PackageCheck, LoaderCircle, CheckCircle2, Download } from 'lucide-react';
+import { services, vehicleTypes, calculatePricing, money, statusLabels, LAGOS_DELIVERY_FEE, type Delivery } from '@/lib/catalog';
 type Panel = 'checkout' | 'fleet' | 'registration' | 'support' | 'track' | null;
 type Customer = {
   name: string;
@@ -31,7 +32,7 @@ const initialCustomer: Customer = {
   address: '',
   channel: 'both'
 };
-const faq = [['Do I need an account to order?', 'No account needed. Select your documents, share your vehicle and contact details, and pay securely. Keep your order reference to track progress.'], ["What is included in the price?", 'Your document fees, our processing charge, 7.5% VAT on the service charge, and any delivery fee are shown separately before payment. Collection is free.'], ['How do I receive my documents?', 'We share soft copies by email and/or WhatsApp. Choose delivery within Lagos for ₦5,000, or collect the originals for free. Our team will confirm the collection location when they are ready.'], ['Can you help with a company fleet?', 'Yes. We support organizations, including Unilever. Send us your fleet size and usual document requirements, and our team will get in touch to arrange the service.']];
+const faq = [['Do I need an account to order?', 'No account needed. Select your documents, share your vehicle and contact details, and pay securely. Keep your order reference to track progress.'], ["What is included in the price?", 'Your document fees, our processing charge, 7.5% VAT on the service charge, and any delivery fee are shown separately before payment. Collection is free.'], ['How do I receive my documents?', `We share soft copies by email and/or WhatsApp. Choose delivery within Lagos for ${money(LAGOS_DELIVERY_FEE)}, or collect the originals for free. Our team will confirm the collection location when they are ready.`], ['Can you help with a company fleet?', 'Yes. We support organizations, including Unilever. Send us your fleet size and usual document requirements, and our team will get in touch to arrange the service.']];
 const serviceIcons = {
   document: FileText,
   car: CarFront,
@@ -368,8 +369,14 @@ export default function Platform() {
    </button>
   </div>
  </section>
- <div className="container"><div className="promise-strip"><span><CheckCheck size={17} /> Renewals & new registrations</span><span><Mail size={16} /> Soft copies by email & WhatsApp</span><span><PackageCheck size={17} /> Delivery or free collection</span><span className="promise-tag"><ShieldCheck size={16} /> One less thing to worry about.</span></div></div>
- <section className="container services-section" id="services"><div className="section-heading"><div><div className="eyebrow">01 / FOR INDIVIDUALS</div><h2>What can we take<br className="mobile-break" /> off your plate?</h2><p>Choose your vehicle, select your documents, and see exactly what you’ll pay.</p></div><span className="section-note"><span className="status-dot" /> Clear fees. No guesswork.</span></div>
+ <div className="container">
+  <ul className="promise-strip" role="list" aria-label="Service benefits">
+   <li><Check aria-hidden="true" /><span>Renewals &amp; new registrations</span></li>
+   <li><Mail aria-hidden="true" /><span>Soft copies by email &amp; WhatsApp</span></li>
+   <li><Package aria-hidden="true" /><strong>Delivery for {money(LAGOS_DELIVERY_FEE)} in Lagos or free collection</strong></li>
+  </ul>
+ </div>
+ <section className="container services-section" id="services"><div className="section-heading"><div><div className="eyebrow">01 / FOR INDIVIDUALS</div><h2>Vehicle document <br className="mobile-break" /> we provide.</h2><p>Choose your vehicle, select your documents, and see exactly what you’ll pay.</p></div><span className="section-note"><span className="status-dot" /> Clear fees. No guesswork.</span></div>
  <div className="vehicle-select"><span>Your vehicle type</span><div role="group" aria-label="Vehicle type">{vehicleTypes.map(v => <button key={v} onClick={() => setVehicle(v)} className={vehicle === v ? 'active' : ''}>{v === 'Car' ? <CarFront size={16} /> : null}{v}</button>)}</div></div>
  <div className="services-layout">
   <div className="catalog">
@@ -383,14 +390,7 @@ export default function Platform() {
     <input type="search" aria-label="Search services" placeholder="Find a document…" value={query} onChange={e => setQuery(e.target.value)} />
     {query && <button onClick={() => setQuery('')} aria-label="Clear search"><X size={15} /></button>}
    </div>
-   {category === 'Registration' ? (
-    <div className="registration-card">
-     <span className="tile-icon"><CarFront /></span>
-     <h3>A fresh start for your new vehicle.</h3>
-     <p>Get help with your first registration, number plates and ownership documents. Tell us about your vehicle for a tailored quote.</p>
-     <button className="button" onClick={() => open('registration')}>Request registration <ArrowUpRight size={17} /></button>
-    </div>
-   ) : (
+   {category !== 'Registration' && (
     <div className="service-grid">
      {visible.map(service => {
        const Icon = serviceIcons[service.icon];
@@ -423,10 +423,19 @@ export default function Platform() {
      )}
     </div>
    )}
- <div className="registration-nudge"><span className="nudge-icon"><CarFront size={20} /></span><span><b>Registering a new vehicle?</b><small>We’ll help you get road-ready from the start.</small></span><button onClick={() => open('registration')}>Let’s talk <ArrowUpRight size={17} /></button></div><p className="price-note"><CircleHelp size={14} /> Document fees, service charges, VAT and delivery are shown separately.</p>
+   <div className="registration-card">
+    <div className="registration-art" aria-hidden="true">
+     <Image src={registrationDocuments} alt="" fill sizes="(max-width: 640px) min(72vw, 380px), 520px" />
+    </div>
+    <span className="tile-icon"><CarFront aria-hidden="true" /></span>
+    <h3>New plates for your new vehicle.</h3>
+    <p>Get help with your first registration, number plates and ownership documents. Tell us about your vehicle for a tailored quote.</p>
+    <button className="button" onClick={() => open('registration')}>Request registration <ArrowUpRight size={17} /></button>
+   </div>
+   <p className="price-note"><CircleHelp size={14} /> Document fees, service charges, VAT and delivery are shown separately.</p>
  </div>
  <aside className="order-summary" aria-label="Your order"><div className="order-title"><h3>Your order</h3><span>{selected.length} selected</span></div>{chosen.length ? <div className="order-items">{chosen.map(s => <div className="order-item" key={s.id}><span>{s.name}<small>{vehicle}</small></span><button onClick={() => toggle(s.id)} aria-label={`Remove ${s.name}`}><X size={16} /></button></div>)}</div> : <div className="empty-order"><span><FileText size={28} strokeWidth={1.2} /></span><p>A little less paperwork<br />starts here.</p><small>Select the documents you need<br />and we’ll take it from there.</small></div>}
- <div className="delivery-toggle" role="group" aria-label="Receive hard copies"><button className={delivery === 'delivery' ? 'active' : ''} onClick={() => setDelivery('delivery')}><Truck size={13} /> Delivery · ₦5,000</button><button className={delivery === 'collection' ? 'active' : ''} onClick={() => setDelivery('collection')}>Collection · Free</button></div><dl className="order-costs"><div><dt>Document fees</dt><dd>{money(totals.documents)}</dd></div><div><dt>Service charges</dt><dd>{money(totals.charges)}</dd></div><div><dt>VAT on service charges (7.5%)</dt><dd>{money(totals.vat, true)}</dd></div><div><dt>{delivery === 'delivery' ? 'Lagos delivery' : 'Collection'}</dt><dd>{delivery === 'collection' ? 'Free' : money(totals.shipping)}</dd></div></dl><div className="order-total"><span>Total to pay</span><strong>{money(totals.total, totals.total % 1 !== 0)}</strong></div><button className="button" onClick={checkout}>Continue to vehicle details <ArrowRight size={16} /></button><p className="secure-note"><LockKeyhole size={11} /> Review everything before you pay</p><div className="paystack-note"><span className="paystack-bars"><i /><i /><i /><i /></span><span>Secured by <b>paystack</b></span></div></aside></div>
+ <div className="delivery-toggle" role="group" aria-label="Receive hard copies"><button className={delivery === 'delivery' ? 'active' : ''} onClick={() => setDelivery('delivery')}><Truck size={13} /> Delivery · {money(LAGOS_DELIVERY_FEE)}</button><button className={delivery === 'collection' ? 'active' : ''} onClick={() => setDelivery('collection')}>Collection · Free</button></div><dl className="order-costs"><div><dt>Document fees</dt><dd>{money(totals.documents)}</dd></div><div><dt>Service charges</dt><dd>{money(totals.charges)}</dd></div><div><dt>VAT on service charges (7.5%)</dt><dd>{money(totals.vat, true)}</dd></div><div><dt>{delivery === 'delivery' ? 'Lagos delivery' : 'Collection'}</dt><dd>{delivery === 'collection' ? 'Free' : money(totals.shipping)}</dd></div></dl><div className="order-total"><span>Total to pay</span><strong>{money(totals.total, totals.total % 1 !== 0)}</strong></div><button className="button" onClick={checkout}>Continue to vehicle details <ArrowRight size={16} /></button><p className="secure-note"><LockKeyhole size={11} /> Review everything before you pay</p><div className="paystack-note"><span className="paystack-bars"><i /><i /><i /><i /></span><span>Secured by <b>paystack</b></span></div></aside></div>
  </section>
  <section className="how-section" id="how-it-works" aria-labelledby="how-heading">
   <div className="container">
@@ -445,7 +454,7 @@ export default function Platform() {
    </ol>
   </div>
  </section>
- <section className="container fleet-section" id="organizations"><div className="fleet-copy"><div className="eyebrow light">03 / FOR ORGANIZATIONS</div><h2>One vehicle or a whole fleet.<br /><span>You’re in good hands.</span></h2><p>Keep your team moving while we handle the paperwork. Get coordinated document processing and a real person to help with your requirements.</p><button className="button" onClick={() => open('fleet')}>Let’s talk about your fleet <ArrowUpRight size={17} /></button><div className="fleet-trust">Supporting organizations including <b>Unilever</b></div></div><div className="fleet-visual" aria-hidden="true"><div className="fleet-visual-header"><Image className="mini-logo" src={brandMark} alt="" width={24} height={24} /><b>A clearer road ahead.</b><span className="fleet-dots">•••</span></div><div className="fleet-visual-title"><span>YOUR FLEET, TAKEN CARE OF</span><ShieldCheck size={20} /></div>{[{
+ <section className="container fleet-section" id="organizations"><div className="fleet-copy"><div className="eyebrow light">03 / FOR ORGANIZATIONS</div><h2>One vehicle or <br className="mobile-break" /> a whole fleet.<br /><span>You’re in good hands.</span></h2><p>Keep your team moving while we handle the paperwork. Get coordinated document processing and a real person to help with your requirements.</p><button className="button" onClick={() => open('fleet')}>Let’s talk about your fleet <ArrowUpRight size={17} /></button><div className="fleet-trust">Supporting organizations including <b>Unilever</b></div></div><div className="fleet-visual" aria-hidden="true"><div className="fleet-visual-header"><Image className="mini-logo" src={brandMark} alt="" width={24} height={24} /><b>A clearer road ahead.</b><span className="fleet-dots">•••</span></div><div className="fleet-visual-title"><span>YOUR FLEET, TAKEN CARE OF</span><ShieldCheck size={20} /></div>{[{
             icon: <CarFront />,
             name: 'Vehicle renewals',
             sub: 'Keep every vehicle up to date',
