@@ -3,8 +3,8 @@ export const services = [{
   name: 'Vehicle licence',
   description: 'Keep your vehicle licence up to date.',
   category: 'Essentials',
-  fee: [2700, 3300, 4200],
-  charge: 2500,
+  fee: [4000, 5000, 8000],
+  charge: 3000,
   icon: 'document',
   timeframe: '2–3 working days'
 }, {
@@ -12,8 +12,8 @@ export const services = [{
   name: 'Roadworthiness certificate',
   description: 'Renew your roadworthiness documentation.',
   category: 'Essentials',
-  fee: [6100, 6800, 14300],
-  charge: 2500,
+  fee: [10500, 12500, 20500],
+  charge: 3000,
   icon: 'car',
   timeframe: '3–5 working days'
 }, {
@@ -21,8 +21,8 @@ export const services = [{
   name: 'Proof of ownership',
   description: 'Get your vehicle ownership documentation sorted.',
   category: 'Essentials',
-  fee: 1200,
-  charge: 2500,
+  fee: 2500,
+  charge: 3000,
   icon: 'person',
   timeframe: '2–3 working days'
 }, {
@@ -30,8 +30,8 @@ export const services = [{
   name: 'Hackney permit',
   description: 'Permit processing for eligible commercial vehicles.',
   category: 'Commercial',
-  fee: [7500, 7500, 9500],
-  charge: 0,
+  fee: 10000,
+  charge: 3000,
   icon: 'shield',
   timeframe: '3–5 working days'
 }, {
@@ -48,8 +48,8 @@ export const services = [{
   name: 'Central Motor Registry',
   description: 'Central Motor Registry document processing.',
   category: 'Permits',
-  fee: 7000,
-  charge: 2500,
+  fee: 9000,
+  charge: 3000,
   icon: 'document',
   timeframe: '3–5 working days'
 }, {
@@ -57,8 +57,8 @@ export const services = [{
   name: 'Heavy duty permit',
   description: 'Get help processing a heavy duty permit.',
   category: 'Commercial',
-  fee: 8000,
-  charge: 2500,
+  fee: 15000,
+  charge: 3000,
   icon: 'truck'
 }, {
   id: 'speed-limiter',
@@ -66,7 +66,7 @@ export const services = [{
   description: 'Get help arranging a vehicle speed limiter.',
   category: 'Commercial',
   fee: 20000,
-  charge: 2500,
+  charge: 3000,
   icon: 'gauge'
 }] as const;
 export const vehicleTypes = ['Car', 'SUV', 'Pickup', 'Truck / van', 'Bus', 'Other / not sure'] as const;
@@ -84,10 +84,12 @@ export const insuranceLabels = {
 export function servicesForVehicle(vehicle: VehicleType) {
   if (vehicle === 'Other / not sure') return [];
   const priceIndex = vehicle === 'Car' ? 0 : vehicle === 'SUV' ? 1 : 2;
-  return services.map(service => ({
-    ...service,
-    fee: typeof service.fee === 'number' ? service.fee : service.fee[priceIndex]
-  }));
+  return services
+    .filter(service => service.id !== 'heavy-duty-permit' || vehicle === 'Bus' || vehicle === 'Truck / van')
+    .map(service => ({
+      ...service,
+      fee: typeof service.fee === 'number' ? service.fee : service.fee[priceIndex]
+    }));
 }
 
 export function validVehicleValue(value: number) {

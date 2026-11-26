@@ -12,7 +12,7 @@ const order = {
   delivery: 'collection',
   channel: 'both',
   consent: true,
-  quotedTotalKobo: 538750
+  quotedTotalKobo: 722500
 };
 test('normalizes customer emails for order lookup', () => {
   assert.equal(orderSchema.parse(order).email, 'ada@example.com');
@@ -31,6 +31,13 @@ test('delivery requires an address; empty services and missing consent are rejec
     ...order,
     consent: false
   }).success, false);
+});
+test('order validation restricts the Heavy Duty Permit to buses, trucks and vans', () => {
+  const permitOrder = { ...order, services: ['heavy-duty-permit'], quotedTotalKobo: 1822500 };
+  for (const vehicleType of ['Car', 'SUV', 'Pickup', 'Bus', 'Truck / van']) {
+    const result = orderSchema.safeParse({ ...permitOrder, vehicleType });
+    assert.equal(result.success, vehicleType === 'Bus' || vehicleType === 'Truck / van', vehicleType);
+  }
 });
 test('fleet enquiries require a company and positive vehicle count', () => {
   const lead = {
