@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { admin, db, failure, sameOrigin } from '@/lib/server';
 import { download, upload, type StoredFile } from '@/lib/files';
-import { statuses, statusLabels } from '@/lib/catalog';
+import { statuses, statusLabels, type UploadKind } from '@/lib/catalog';
 import { queue } from '@/lib/notifications';
 export async function GET() {
   try {
@@ -16,7 +16,10 @@ export async function GET() {
     }).limit(200).toArray();
     return NextResponse.json(orders.map(o => ({
       ...o,
-      uploads: (o.uploads as StoredFile[]).map(download),
+      uploads: (o.uploads as (StoredFile & { documentType?: UploadKind })[]).map(file => ({
+        ...download(file),
+        documentType: file.documentType
+      })),
       documents: (o.documents as StoredFile[]).map(download)
     })), {
       headers: {
@@ -47,6 +50,9 @@ export async function PATCH(request: Request) {
     const documents: StoredFile[] = [...order.documents];
     if (file instanceof File && file.size) documents.push(await upload(file));
     if (['soft_copies_ready', 'completed'].includes(status) && !documents.length) throw new Error('Upload the completed documents before this status transition.');
+    if (order.insurance && !order.services.length && ['out_for_delivery', 'ready_for_collection'].includes(status)) {
+      throw new Error('Insurance-only orders are fulfilled digitally.');
+    }
     if (status === 'out_for_delivery' && order.delivery !== 'delivery') throw new Error('This order is for collection.');
     if (status === 'ready_for_collection' && order.delivery !== 'collection') throw new Error('This order is for delivery.');
     await database.collection('orders').updateOne({
