@@ -38,6 +38,8 @@ export async function POST(request: Request) {
       pricing,
       total: pricing.total,
       status: 'payment_pending',
+      submissionState: 'pending',
+      submissionAttempts: 0,
       documents: [],
       createdAt: new Date(),
       updatedAt: new Date()
