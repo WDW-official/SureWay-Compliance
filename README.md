@@ -61,6 +61,13 @@ The worker processes one submission per invocation, alternating priority between
 10. **Confirm pricing before launch.** `lib/catalog.ts` uses the supplied vehicle-specific rates, ₦5,000 Lagos delivery, and two insurance options. Hackney has no separate service charge. VAT is calculated on document service charges, and insurance-only orders have no delivery fee. Confirm these assumptions, permit eligibility, and the insurance fulfillment process before setting `PRICING_CONFIRMED=true`. Registration and unlisted vehicle types use the enquiry flow for quotes.
 11. Complete the launch checks below. The site switches out of preview only when all required live-service variables are present and pricing is confirmed.
 
+### Optional WhatsApp webhook
+
+1. Generate a verify token with `openssl rand -hex 32` and save it as `WHATSAPP_VERIFY_TOKEN` in the host's secret manager. Save your Meta app's **App Secret** as `WHATSAPP_APP_SECRET` to authenticate event notifications.
+2. Deploy the app with those settings. In Meta's **Configure Webhooks** screen, enter your public HTTPS `APP_URL` with `/api/whatsapp/webhook` appended as the **Callback URL**. Enter the same `WHATSAPP_VERIFY_TOKEN` as the **Verify token** and click **Verify and save**.
+
+The endpoint acknowledges signed events. Incoming replies and delivery statuses are currently discarded. The existing WhatsApp notification flow sends via the Cloud API independently of the webhook.
+
 ## Validation
 
 ```sh
