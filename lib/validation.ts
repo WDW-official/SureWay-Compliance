@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { requiredPermitUploads, requestKinds, services, uploadKinds, validVehicleValue, vehicleTypes } from './catalog';
+import { requiredPermitUploads, requestKinds, services, servicesForVehicle, uploadKinds, validVehicleValue, vehicleTypes } from './catalog';
 const phone = z.string().trim().regex(/^\+?[\d\s()-]{10,20}$/, 'Enter a valid phone number').refine(value => { const digits = value.replace(/\D/g, ''); return digits.length >= 10 && digits.length <= 15; }, 'Enter a valid phone number');
 const contact = {
   name: z.string().trim().min(2).max(100),
@@ -34,6 +34,12 @@ export const orderSchema = z.object({
   const issue = (field: string, message: string) => context.addIssue({ code: 'custom', path: [field], message });
   if (!order.services.length && !order.insurance) issue('services', 'Select at least one document or an insurance option.');
   if (order.vehicleType === 'Other / not sure') issue('vehicleType', 'Choose a vehicle category to order online.');
+  else {
+    const available = servicesForVehicle(order.vehicleType);
+    if (order.services.some(id => !available.some(service => service.id === id))) {
+      issue('services', 'Choose documents available for this vehicle category.');
+    }
+  }
   if (order.services.length && order.delivery === 'delivery' && order.address.length < 10) {
     issue('address', 'Enter a Lagos delivery address');
   }

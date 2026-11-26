@@ -9,8 +9,7 @@ import heroPhoto from '@/assets/hero-photo.webp';
 import heroDocuments from '@/assets/hero-documents.webp';
 import heroNumberPlate from '@/assets/hero-number-plate.webp';
 import registrationDocuments from '@/assets/registration-documents.webp';
-import primaryLogo from '@/assets/sureway-logo-primary.png';
-import BrandLogo from '@/components/brand-logo';
+import BrandLogo, { ModalLogo } from '@/components/brand-logo';
 import { useEffect, useRef, useState, type FormEvent } from 'react';
 import { ArrowRight, ArrowUpRight, Check, CheckCheck, ChevronDown, ChevronLeft, ChevronRight, FileText, ShieldCheck, CarFront, Truck, UserRound, UsersRound, ShoppingCart, Menu, X, Plus, Minus, MapPin, Mail, MessageCircle, Headset, PhoneCall, Gauge, LockKeyhole, UploadCloud, Search, CircleHelp, Building2, Sparkles, Package, PackageCheck, LoaderCircle, CheckCircle2, Download } from 'lucide-react';
 import {
@@ -39,7 +38,7 @@ const initialCustomer: Customer = {
   address: '',
   channel: 'both'
 };
-const faq = [['Do I need an account to order?', 'No account needed. Select your documents, share your vehicle and contact details, and pay securely. Keep your order reference to track progress.'], ["What is included in the price?", 'Your document fees, our processing charge, 7.5% VAT on the service charge, and any delivery fee are shown separately before payment. Collection is free.'], ['How do I receive my documents?', `We share soft copies by email and/or WhatsApp. Choose delivery within Lagos for ${money(LAGOS_DELIVERY_FEE)}, or collect the originals for free. Our team will confirm the collection location when they are ready.`], ['Can you help with a company fleet?', 'Yes. We support organizations, including Unilever. Send us your fleet size and usual document requirements, and our team will get in touch to arrange the service.']];
+const faq = [['Do I need an account to order?', 'No account needed. Select your documents, share your vehicle and contact details, and pay securely. Keep your order reference to track progress.'], ["What is included in the price?", 'Your document fees, our processing charge, 7.5% VAT on the service charge, and any delivery fee are shown separately before payment. Collection is free.'], ['How do I receive my documents?', `We share soft copies by email and/or WhatsApp. Choose delivery within Lagos for ${money(LAGOS_DELIVERY_FEE)}, or collect the originals for free. Our team will confirm the collection location when they are ready.`], ['Can you help with a company fleet?', 'Yes. We support organizations. Send us your fleet size and usual document requirements, and our team will get in touch to arrange the service.']];
 const serviceIcons = {
   document: FileText,
   car: CarFront,
@@ -110,12 +109,11 @@ export default function Platform() {
     try {
       const saved = JSON.parse(localStorage.getItem('sureway-cart') || 'null');
       if (saved) {
-        setSelected(saved.selected.filter((id: string) => services.some(s => s.id === id)));
-        if (vehicleTypes.includes(saved.vehicle)) {
-          setVehicle(saved.vehicle);
-          if (saved.vehicle === 'Other / not sure') setSelected([]);
-        }
-        if (saved.vehicle !== 'Other / not sure') {
+        const savedVehicle: VehicleType = vehicleTypes.includes(saved.vehicle) ? saved.vehicle : 'Car';
+        const available = servicesForVehicle(savedVehicle);
+        setSelected(saved.selected.filter((id: string) => available.some(s => s.id === id)));
+        setVehicle(savedVehicle);
+        if (savedVehicle !== 'Other / not sure') {
           if (saved.insuranceKind === 'third-party' || saved.insuranceKind === 'comprehensive') setInsuranceKind(saved.insuranceKind);
           if (typeof saved.vehicleValue === 'string') setVehicleValue(saved.vehicleValue);
         }
@@ -204,6 +202,13 @@ export default function Platform() {
       setSelected([]);
       setInsuranceKind('');
       setRequests({});
+    } else {
+      const available = servicesForVehicle(nextVehicle);
+      const nextSelected = selected.filter(id => available.some(service => service.id === id));
+      if (nextSelected.length !== selected.length) {
+        setSelected(nextSelected);
+        setToast('Heavy Duty Permit removed. It is available for buses, trucks and vans.');
+      }
     }
   }
   function checkout() {
@@ -456,7 +461,7 @@ export default function Platform() {
    <button className="feature-tile fleet-tile" onClick={() => open('fleet')}>
     <span className="tile-icon"><UsersRound /></span>
     <span className="tile-value">The whole<br />fleet.</span>
-    <span className="tile-label">Support for organizations</span>
+    <span className="tile-label">Vehicle document <br className="mobile-break" /> for Fleets</span>
     <span className="tile-link">Talk to our team <ArrowUpRight size={15} /></span>
    </button>
   </div>
@@ -468,7 +473,7 @@ export default function Platform() {
    <li><Package aria-hidden="true" /><strong>Delivery for {money(LAGOS_DELIVERY_FEE)} in Lagos or free collection</strong></li>
   </ul>
  </div>
- <section className="container services-section" id="services"><div className="section-heading"><div><div className="eyebrow">01 / FOR INDIVIDUALS</div><h2>Vehicle document <br className="mobile-break" /> we provide.</h2><p>Choose your vehicle, select your documents, and see exactly what you’ll pay.</p></div><span className="section-note"><span className="status-dot" /> Clear fees. No guesswork.</span></div>
+ <section className="container services-section" id="services"><div className="section-heading"><div><div className="eyebrow">01 / FOR INDIVIDUALS</div><h2>Vehicle documents<br className="mobile-break" /> we provide.</h2><p>Choose your vehicle, select your documents, and see exactly what you’ll pay.</p></div><span className="section-note"><span className="status-dot" /> Clear fees. No guesswork.</span></div>
  <div className="vehicle-select">
   <span>Your vehicle type</span>
   <div role="group" aria-label="Vehicle type">
@@ -556,7 +561,7 @@ export default function Platform() {
     </div>
     <span className="tile-icon"><CarFront aria-hidden="true" /></span>
     <h3>New plates for your new vehicle.</h3>
-    <p>Get help with your first registration, number plates and ownership documents. Tell us about your vehicle for a tailored quote.</p>
+    <p>Get your number plates, vehicle licence, proof of ownership and other required vehicle documents through SureWay Compliance.</p>
     <button className="button" onClick={() => open('registration')}>Request registration <ArrowUpRight size={17} /></button>
    </div>
    <p className="price-note"><CircleHelp size={14} /> Document fees, service charges, VAT and delivery are shown separately.</p>
@@ -627,7 +632,7 @@ export default function Platform() {
             sub: 'Real people, a direct conversation',
             tag: 'Here for you'
           }].map(r => <div className="fleet-row" key={r.name}><span className="fleet-row-icon">{r.icon}</span><span><b>{r.name}</b><small>{r.sub}</small></span><span className="fleet-row-status"><Check size={11} />{r.tag}</span></div>)}<div className="fleet-visual-bottom"><span className="status-dot" /> Less chasing. More doing.</div></div></section>
- <section className="container faq-section"><div className="faq-intro"><div className="eyebrow">GOOD QUESTIONS. STRAIGHT ANSWERS.</div><h2>A few things<br />you might be wondering.</h2><p>Need a hand with something else?<br />We’re happy to help.</p><button className="text-link" onClick={() => open('support')}>Talk to our team <ArrowUpRight size={16} /></button></div><div className="faq-list">{faq.map(([question, answer], i) => <div className={'faq-item ' + (faqOpen === i ? 'open' : '')} key={question}><button aria-expanded={faqOpen === i} aria-controls={`faq-${i}`} onClick={() => setFaqOpen(faqOpen === i ? null : i)}>{question}{faqOpen === i ? <Minus size={18} /> : <Plus size={18} />}</button><div id={`faq-${i}`} hidden={faqOpen !== i}><p>{answer}</p></div></div>)}</div></section>
+ <section className="container faq-section"><div className="faq-intro"><div className="eyebrow">GOOD QUESTIONS. STRAIGHT ANSWERS.</div><h2>A few things<br />you might be wondering.</h2><p>Need a hand with something else? We’re happy to help.</p><button className="text-link" onClick={() => open('support')}>Talk to our team <ArrowUpRight size={16} /></button></div><div className="faq-list">{faq.map(([question, answer], i) => <div className={'faq-item ' + (faqOpen === i ? 'open' : '')} key={question}><button aria-expanded={faqOpen === i} aria-controls={`faq-${i}`} onClick={() => setFaqOpen(faqOpen === i ? null : i)}>{question}{faqOpen === i ? <Minus size={18} /> : <Plus size={18} />}</button><div id={`faq-${i}`} hidden={faqOpen !== i}><p>{answer}</p></div></div>)}</div></section>
  <div className="container final-cta"><div><span className="eyebrow">LET’S GET YOU ROAD-READY</span><h2>Your next journey starts here.</h2></div><button className="button" onClick={scrollServices}>Sort my documents <ArrowUpRight size={17} /></button></div>
  </main>
  <footer><div className="container footer-main"><div><BrandLogo footer /><p>A little less paperwork.<br />A little more peace of mind.</p></div><div className="footer-links"><a href="#services">Our services</a><a href="#how-it-works">How it works</a><button onClick={() => open('fleet')}>For organizations</button></div><div className="footer-links"><button onClick={() => open('track')}>Track your order</button><button onClick={() => open('support')}>Get support</button><span><MapPin size={13} /> Lagos, Nigeria</span></div></div><div className="container footer-bottom"><span>© {new Date().getFullYear()} SureWay Compliance. All rights reserved.</span><span>Made for the road ahead. <ArrowUpRight size={12} /></span></div></footer>
@@ -641,8 +646,11 @@ export default function Platform() {
             setCategory('Permits');
             scrollServices();
           }}><Check size={18} /> Permits & certificates</button><button onClick={() => open('registration')}><Plus size={18} /> New vehicle registration</button></div><button onClick={scrollServices}>All services <ArrowUpRight size={16} /></button><a href="#how-it-works" onClick={() => setMenu(false)}>How it works <ArrowUpRight size={16} /></a><button onClick={() => open('fleet')}>For organizations <ArrowUpRight size={16} /></button><button onClick={() => open('track')}>Track your order <ArrowUpRight size={16} /></button><button onClick={() => open('support')}>Get support <ArrowUpRight size={16} /></button><button className="button" onClick={() => open('support')}>Talk to our team <ArrowRight size={17} /></button></div></div>}
- {panel && <div className="modal-backdrop" onClick={() => !busy && setPanel(null)}><section className={'modal ' + (panel === 'checkout' ? 'checkout-modal' : '')} role="dialog" aria-modal="true" aria-labelledby="modal-title" onClick={e => e.stopPropagation()}><div className="modal-top">{panel === 'checkout' ? <Image className="checkout-logo" src={primaryLogo} alt="SureWay Compliance" sizes="146px" /> : <span className="eyebrow">SUREWAY COMPLIANCE</span>}<button ref={closeRef} onClick={() => setPanel(null)} disabled={busy} aria-label="Close dialog"><X size={22} /></button></div>
- {success ? <div className="success-panel"><span className="success-icon"><CheckCheck size={34} /></span><div className="eyebrow">{demo ? 'PREVIEW COMPLETE' : 'YOU’RE ALL SET'}</div><h2 id="modal-title">{success === 'enquiry' ? demo ? 'Your enquiry is ready.' : 'We’ll take it from here.' : 'Your preview order is ready.'}</h2><p>{demo ? success === 'enquiry' ? 'Saved in this browser for this preview. This enquiry has not been sent to the SureWay team.' : 'No payment has been taken and no request has been sent. Your preview order is saved in this browser.' : 'Our team has received your enquiry and will contact you to discuss the next steps.'}</p>{success !== 'enquiry' && <div className="reference-box"><small>YOUR ORDER REFERENCE</small><strong>{success}</strong><button className="text-link" onClick={() => {
+ {panel && <div className="modal-backdrop" onClick={() => !busy && setPanel(null)}><section className={'modal ' + (panel === 'checkout' ? 'checkout-modal' : '')} role="dialog" aria-modal="true" aria-labelledby="modal-title" onClick={e => e.stopPropagation()}><div className="modal-top"><ModalLogo /><button ref={closeRef} onClick={() => setPanel(null)} disabled={busy} aria-label="Close dialog"><X size={22} /></button></div>
+ {success ? <div className="success-panel"><h2 id="modal-title" className="modal-heading">
+  <span className="success-icon" aria-hidden="true"><CheckCheck size={34} /></span>
+  {success === 'enquiry' ? demo ? 'Your enquiry is ready.' : 'We’ll take it from here.' : 'Your preview order is ready.'}
+ </h2><p>{demo ? success === 'enquiry' ? 'Saved in this browser for this preview. This enquiry has not been sent to the SureWay team.' : 'No payment has been taken and no request has been sent. Your preview order is saved in this browser.' : 'Our team has received your enquiry and will contact you to discuss the next steps.'}</p>{success !== 'enquiry' && <div className="reference-box"><small>YOUR ORDER REFERENCE</small><strong>{success}</strong><button className="text-link" onClick={() => {
               navigator.clipboard?.writeText(success);
               setToast('Order reference copied');
             }}>Copy reference</button></div>}<button className="button" onClick={() => setPanel(null)}>Back to SureWay <ArrowRight size={17} /></button></div> : panel === 'checkout' ? <><h2 id="modal-title">Let’s get your documents sorted.</h2><p className="modal-description">Just a few details, and we’ll take it from here.</p><div className="checkout-steps">{['Your details', 'Documents', 'Review & pay'].map((label, i) => <span key={label} aria-current={step === i + 1 ? 'step' : undefined} className={step === i + 1 ? 'active' : step > i + 1 ? 'done' : ''}><i>{step > i + 1 ? <Check size={12} /> : i + 1}</i>{label}</span>)}</div>
@@ -753,10 +761,16 @@ export default function Platform() {
   {!demo && <p className="modal-footnote">You’ll be redirected to Paystack to complete your payment securely.</p>}
  </div>}
 
- </> : panel === 'track' ? <><span className="modal-feature-icon"><PackageCheck size={26} /></span><h2 id="modal-title">A quick check on your order.</h2><p className="modal-description">Enter the reference and email you used when ordering.</p><form onSubmit={track} className="stacked-form"><label>Order reference<input name="reference" required placeholder="SW-…" autoComplete="off" /></label><label>Email address<input name="email" type="email" required placeholder="you@example.com" /></label><button className="button" disabled={busy}>{busy ? <LoaderCircle size={18} className="spin" /> : <Search size={17} />} Find my order</button></form>{trackResult && <div className="tracking-result"><span className="tracking-status"><span className="status-dot" />{statusLabels[String(trackResult.status)] || 'Received'}</span><h3>{String(trackResult.reference)}</h3><p>{String(trackResult.make)} · {String(trackResult.plate)}</p><b>{money(Number(trackResult.total), true)}</b><div className="tracking-timeline">{['paid', 'processing', 'soft_copies_ready', 'completed'].map((status, i) => <div key={status} className={['paid', 'processing', 'soft_copies_ready', 'ready_for_collection', 'out_for_delivery', 'completed'].indexOf(String(trackResult.status)) >= ['paid', 'processing', 'soft_copies_ready', 'ready_for_collection', 'out_for_delivery', 'completed'].indexOf(status) ? 'done' : ''}><span>{i + 1}</span>{statusLabels[status]}</div>)}</div>{Array.isArray(trackResult.documents) && trackResult.documents.map((doc: {
+ </> : panel === 'track' ? <><h2 id="modal-title" className="modal-heading">
+  <span className="modal-feature-icon" aria-hidden="true"><PackageCheck size={26} /></span>
+  A quick check on your order.
+ </h2><p className="modal-description">Enter the reference and email you used when ordering.</p><form onSubmit={track} className="stacked-form"><label>Order reference<input name="reference" required placeholder="SW-…" autoComplete="off" /></label><label>Email address<input name="email" type="email" required placeholder="you@example.com" /></label><button className="button" disabled={busy}>{busy ? <LoaderCircle size={18} className="spin" /> : <Search size={17} />} Find my order</button></form>{trackResult && <div className="tracking-result"><span className="tracking-status"><span className="status-dot" />{statusLabels[String(trackResult.status)] || 'Received'}</span><h3>{String(trackResult.reference)}</h3><p>{String(trackResult.make)} · {String(trackResult.plate)}</p><b>{money(Number(trackResult.total), true)}</b><div className="tracking-timeline">{['paid', 'processing', 'soft_copies_ready', 'completed'].map((status, i) => <div key={status} className={['paid', 'processing', 'soft_copies_ready', 'ready_for_collection', 'out_for_delivery', 'completed'].indexOf(String(trackResult.status)) >= ['paid', 'processing', 'soft_copies_ready', 'ready_for_collection', 'out_for_delivery', 'completed'].indexOf(status) ? 'done' : ''}><span>{i + 1}</span>{statusLabels[status]}</div>)}</div>{Array.isArray(trackResult.documents) && trackResult.documents.map((doc: {
               name: string;
               url: string;
-            }, i: number) => <a key={i} className="document-download" href={doc.url} target="_blank" rel="noreferrer"><Download size={16} />{doc.name}</a>)}</div>}{demo && <p className="modal-footnote">Preview orders are available only in the browser where they were created.</p>}</> : <><span className="modal-feature-icon">{panel === 'fleet' ? <Building2 size={26} /> : panel === 'registration' ? <CarFront size={26} /> : <MessageCircle size={26} />}</span><h2 id="modal-title">{panel === 'fleet' ? 'Let’s keep your fleet moving.' : panel === 'registration' ? 'New vehicle. Fresh start.' : 'A real person. Ready to help.'}</h2><p className="modal-description">{panel === 'fleet' ? 'Tell us a little about your organization. Our team will follow up to discuss your requirements and arrange the service.' : panel === 'registration' ? 'Share your details and tell us about your vehicle. We’ll get in touch with the requirements and a clear quote.' : 'Send us your question and our team will get back to you.'}</p><form onSubmit={enquiry} className="enquiry-form"><div className="form-grid"><label>Your name<input required name="name" autoComplete="name" minLength={2} maxLength={100} placeholder="Full name" /></label><label>{panel === 'fleet' ? 'Work email' : 'Email address'}<input required name="email" type="email" autoComplete="email" placeholder="you@example.com" /></label><label>Phone / WhatsApp<input required name="phone" type="tel" pattern="[+0-9 ]{10,20}" placeholder="+234 800 000 0000" /></label>{panel === 'fleet' && <><label>Organization<input required name="company" maxLength={150} placeholder="e.g. Unilever" /></label><label className="full-label">Number of vehicles<input required name="fleetSize" type="number" min="1" max="100000" placeholder="e.g. 25" /></label></>}</div>{panel === 'fleet' && <fieldset className="document-checkboxes"><legend>Which documents do you typically need?</legend>{services.map(s => <label key={s.id}><input name="documents" type="checkbox" value={s.name} />{s.name}</label>)}</fieldset>}<label className="full-label">{panel === 'registration' ? 'Tell us about your vehicle' : panel === 'support' ? 'How can we help?' : 'Anything else we should know?'}<textarea name="message" required={panel !== 'fleet'} minLength={panel !== 'fleet' ? 5 : 0} maxLength={3000} placeholder={panel === 'registration' ? 'Make, model, year, imported or locally purchased, and any documents you already have…' : panel === 'support' ? 'Your question or order reference…' : 'Your requirements, locations, or preferred time to call…'} /></label><label className="checkbox-label"><input name="consent" type="checkbox" required /><span>I agree to SureWay using these details to contact me about this request.</span></label>{demo && <div className="demo-notice">Preview mode: this enquiry is saved in your browser and is not sent to the team.</div>}<button className="button full-width" disabled={busy}>{busy ? <LoaderCircle size={18} className="spin" /> : null}{demo ? 'Preview enquiry' : panel === 'registration' ? 'Request my registration quote' : 'Send to the SureWay team'}<ArrowRight size={17} /></button></form></>}
+            }, i: number) => <a key={i} className="document-download" href={doc.url} target="_blank" rel="noreferrer"><Download size={16} />{doc.name}</a>)}</div>}{demo && <p className="modal-footnote">Preview orders are available only in the browser where they were created.</p>}</> : <><h2 id="modal-title" className="modal-heading">
+  <span className="modal-feature-icon" aria-hidden="true">{panel === 'fleet' ? <Building2 size={26} /> : panel === 'registration' ? <CarFront size={26} /> : <MessageCircle size={26} />}</span>
+  {panel === 'fleet' ? 'Let’s keep your fleet moving.' : panel === 'registration' ? 'New vehicle. Fresh start.' : 'A real person. Ready to help.'}
+ </h2><p className="modal-description">{panel === 'fleet' ? 'Tell us a little about your organization. Our team will follow up to discuss your requirements and arrange the service.' : panel === 'registration' ? 'Share your details and tell us about your vehicle. We’ll get in touch with the requirements and a clear quote.' : 'Send us your question and our team will get back to you.'}</p><form onSubmit={enquiry} className="enquiry-form"><div className="form-grid"><label>Your name<input required name="name" autoComplete="name" minLength={2} maxLength={100} placeholder="Full name" /></label><label>{panel === 'fleet' ? 'Work email' : 'Email address'}<input required name="email" type="email" autoComplete="email" placeholder="you@example.com" /></label><label>Phone / WhatsApp<input required name="phone" type="tel" pattern="[+0-9 ]{10,20}" placeholder="+234 800 000 0000" /></label>{panel === 'fleet' && <><label>Organization<input required name="company" maxLength={150} placeholder="e.g. Unilever" /></label><label className="full-label">Number of vehicles<input required name="fleetSize" type="number" min="1" max="100000" placeholder="e.g. 25" /></label></>}</div>{panel === 'fleet' && <fieldset className="document-checkboxes"><legend>Which documents do you typically need?</legend>{services.map(s => <label key={s.id}><input name="documents" type="checkbox" value={s.name} />{s.name}</label>)}</fieldset>}<label className="full-label">{panel === 'registration' ? 'Tell us about your vehicle' : panel === 'support' ? 'How can we help?' : 'Anything else we should know?'}<textarea name="message" required={panel !== 'fleet'} minLength={panel !== 'fleet' ? 5 : 0} maxLength={3000} placeholder={panel === 'registration' ? 'Make, model, year, imported or locally purchased, and any documents you already have…' : panel === 'support' ? 'Your question or order reference…' : 'Your requirements, locations, or preferred time to call…'} /></label><label className="checkbox-label"><input name="consent" type="checkbox" required /><span>I agree to SureWay using these details to contact me about this request.</span></label>{demo && <div className="demo-notice">Preview mode: this enquiry is saved in your browser and is not sent to the team.</div>}<button className="button full-width" disabled={busy}>{busy ? <LoaderCircle size={18} className="spin" /> : null}{demo ? 'Preview enquiry' : panel === 'registration' ? 'Request my registration quote' : 'Send to the SureWay team'}<ArrowRight size={17} /></button></form></>}
  {error && <div className="form-error" role="alert"><CircleHelp size={17} />{error}</div>}
  </section></div>}
  </>;
