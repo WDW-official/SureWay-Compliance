@@ -68,6 +68,13 @@ The worker processes one submission per invocation, alternating priority between
 
 The endpoint acknowledges signed events. Incoming replies and delivery statuses are currently discarded. The existing WhatsApp notification flow sends via the Cloud API independently of the webhook.
 
+### Service Documents and customer controls
+
+- Review the four draft policies in `lib/policies.ts`. Copy the reviewed sections and effective date into `approvedPolicies` to publish that version at its permanent address under `/service-documents`. Publish Privacy and Terms first and verify the homepage footer and both pages while signed out before entering their URLs in Google Auth Platform. Keep policy sources separate from the private customer submission archive set by `GOOGLE_DRIVE_FOLDER_ID`. B2B SLAs belong in separately agreed corporate contracts.
+- Tracking allows customers to cancel within 15 minutes of order creation while no requested documents have been created or issued. Staff must use **Mark documents created** as soon as creation is confirmed outside SureWay, before issuing an external document. An already-started checkout can still settle after cancellation; SureWay records the payment on the cancelled order for staff review.
+- **Exceptional refund** in the admin order details supports one full or partial Paystack refund per order. Staff record the reason and use **Check status with Paystack** to reconcile the result. If submission is ambiguous or a refund needs additional action, reconcile it against the displayed refund reference in Paystack before taking further action. Run an end-to-end refund using Paystack test mode before using the feature with a live payment.
+- **Cookie settings** lets visitors accept or reject optional cookies, select categories, and change preferences from the footer. The current site has no optional analytics or marketing integrations. Any such integration must use the matching preference before loading.
+
 ## Validation
 
 ```sh
