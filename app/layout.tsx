@@ -1,4 +1,5 @@
 import type { Metadata } from 'next';
+import CookiePreferences from '@/components/cookie-preferences';
 import './globals.css';
 export const metadata: Metadata = {
   title: 'SureWay Compliance | Your documents. Handled.',
@@ -9,5 +10,5 @@ export default function RootLayout({
 }: {
   children: React.ReactNode;
 }) {
-  return <html lang="en"><body>{children}</body></html>;
+  return <html lang="en"><body>{children}<CookiePreferences /></body></html>;
 }

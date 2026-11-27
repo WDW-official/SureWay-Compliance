@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { db, failure, limit, sameOrigin } from '@/lib/server';
 import { download, type StoredFile } from '@/lib/files';
+import { cancellationDeadline } from '@/lib/cancellation';
 export async function POST(request: Request) {
   try {
     sameOrigin(request);
@@ -25,6 +26,14 @@ export async function POST(request: Request) {
       plate: order.plate,
       status: order.status,
       total: order.total,
+      cancellableUntil: cancellationDeadline({
+        status: order.status,
+        createdAt: order.createdAt,
+        documentsCreatedAt: order.documentsCreatedAt,
+        documents: order.documents,
+        history: order.history
+      }),
+      refundStatus: order.refund?.status ?? (order.status === 'cancelled' && order.paidAt ? 'review' : null),
       documents: (order.documents as StoredFile[]).map(download)
     }, {
       headers: {

@@ -19,29 +19,31 @@ export async function paystack(path: string, body?: unknown) {
 export async function settle(data: Record<string, unknown>) {
   if (data.status !== 'success' || data.currency !== 'NGN') throw new Error('Payment has not been completed.');
   const database = await db();
-  const order = await database.collection('orders').findOne({
+  const orders = database.collection('orders');
+  let order = await orders.findOne({
     reference: data.reference
   });
   if (!order || Number(data.amount) !== Math.round(order.total * 100)) throw new Error('Payment amount does not match this order.');
+  const paidAt = new Date();
+  const payment = { paidAt, updatedAt: paidAt, paystackTransactionId: String(data.id) };
   if (order.status === 'payment_pending') {
-    const result = await database.collection('orders').findOneAndUpdate({
-      reference: data.reference,
-      status: 'payment_pending'
-    }, {
-      $set: {
-        status: 'paid',
-        paidAt: new Date(),
-        updatedAt: new Date(),
-        paystackTransactionId: String(data.id)
-      }
-    }, {
-      returnDocument: 'after'
-    });
-    if (result) Object.assign(order, result);
+    order = await orders.findOneAndUpdate(
+      { _id: order._id, status: 'payment_pending' },
+      { $set: { status: 'paid', ...payment } },
+      { returnDocument: 'after' }
+    ) ?? await orders.findOne({ _id: order._id });
+    if (!order) throw new Error('Order not found');
+  }
+  if (order.status === 'cancelled') {
+    await orders.updateOne(
+      { _id: order._id, status: 'cancelled', paidAt: null },
+      { $set: payment }
+    );
+    return { reference: order.reference, status: 'cancelled' };
   }
   await notifyPaid(order);
   return {
     reference: order.reference,
-    status: order.status === 'payment_pending' ? 'paid' : order.status
+    status: order.status
   };
 }

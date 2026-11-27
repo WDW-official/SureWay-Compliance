@@ -1,6 +1,8 @@
 'use client';
 
 import Image from 'next/image';
+import Link from 'next/link';
+import { refundLabels } from '@/lib/refunds';
 import brandMark from '@/app/icon.png';
 import chooseDocuments from '@/assets/how-choose-documents.webp';
 import processDocuments from '@/assets/how-process-documents.webp';
@@ -10,7 +12,7 @@ import heroDocuments from '@/assets/hero-documents.webp';
 import heroNumberPlate from '@/assets/hero-number-plate.webp';
 import registrationDocuments from '@/assets/registration-documents.webp';
 import BrandLogo, { ModalLogo } from '@/components/brand-logo';
-import { useEffect, useRef, useState, type FormEvent } from 'react';
+import { useEffect, useRef, useState, type FormEvent, type ReactNode } from 'react';
 import { ArrowRight, ArrowUpRight, Check, CheckCheck, ChevronDown, ChevronLeft, ChevronRight, FileText, ShieldCheck, CarFront, Truck, UserRound, UsersRound, ShoppingCart, Menu, X, Plus, Minus, MapPin, Mail, MessageCircle, Headset, PhoneCall, Gauge, LockKeyhole, UploadCloud, Search, CircleHelp, Building2, Sparkles, Package, PackageCheck, LoaderCircle, CheckCircle2, Download } from 'lucide-react';
 import {
   services, vehicleTypes, servicesForVehicle, calculatePricing, money, statusLabels,
@@ -65,7 +67,7 @@ const steps = [
   }
 ];
 const supportPhone = '+2348078672176';
-export default function Platform() {
+export default function Platform({ serviceDocumentLinks }: { serviceDocumentLinks: ReactNode }) {
   const [selected, setSelected] = useState<string[]>([]),
     [vehicle, setVehicle] = useState<VehicleType>('Car'),
     [category, setCategory] = useState('All services'),
@@ -84,6 +86,17 @@ export default function Platform() {
     [faqOpen, setFaqOpen] = useState<number | null>(null),
     [toast, setToast] = useState('');
   const [trackResult, setTrackResult] = useState<Record<string, unknown> | null>(null);
+  const [trackEmail, setTrackEmail] = useState('');
+  const [confirmCancellation, setConfirmCancellation] = useState(false);
+  const cancellableUntil = typeof trackResult?.cancellableUntil === 'string' ? trackResult.cancellableUntil : null;
+  useEffect(() => {
+    if (!cancellableUntil) return;
+    const timer = window.setTimeout(() => {
+      setTrackResult(order => order && { ...order, cancellableUntil: null });
+      setConfirmCancellation(false);
+    }, Math.max(0, new Date(cancellableUntil).getTime() - Date.now()));
+    return () => window.clearTimeout(timer);
+  }, [cancellableUntil]);
   const closeRef = useRef<HTMLButtonElement>(null);
   const [insuranceKind, setInsuranceKind] = useState<Insurance['kind'] | ''>('');
   const [vehicleValue, setVehicleValue] = useState('');
@@ -185,6 +198,8 @@ export default function Platform() {
     setError('');
     setSuccess('');
     setTrackResult(null);
+    setTrackEmail('');
+    setConfirmCancellation(false);
   }
   function scrollServices() {
     setMenu(false);
@@ -384,6 +399,8 @@ export default function Platform() {
     setBusy(true);
     setError('');
     setTrackResult(null);
+    setTrackEmail('');
+    setConfirmCancellation(false);
     const data = new FormData(e.currentTarget);
     const reference = String(data.get('reference')).trim(),
       email = String(data.get('email')).trim();
@@ -409,6 +426,7 @@ export default function Platform() {
         });
         const order = await response.json();
         if (!response.ok) throw new Error(order.error);
+        setTrackEmail(email);
         setTrackResult(order);
       }
     } catch (e) {
@@ -417,10 +435,35 @@ export default function Platform() {
       setBusy(false);
     }
   }
+  async function cancelOrder() {
+    if (busy || !trackResult || !trackEmail) return;
+    setBusy(true);
+    setError('');
+    try {
+      const response = await fetch('/api/orders/cancel', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ reference: trackResult.reference, email: trackEmail })
+      });
+      const result = await response.json();
+      if (response.status === 409) {
+        setTrackResult(order => order && { ...order, cancellableUntil: null });
+        setConfirmCancellation(false);
+      }
+      if (!response.ok) throw new Error(result.error);
+      setTrackResult(order => order && { ...order, ...result, cancellableUntil: null });
+      setConfirmCancellation(false);
+    } catch (error) {
+      setError(error instanceof Error ? error.message : 'Could not cancel the order. Please try again.');
+    } finally {
+      setBusy(false);
+    }
+  }
+
   const visible = servicesForVehicle(vehicle).filter(s => (category === 'All services' || s.category === category) && (s.name + ' ' + s.description).toLowerCase().includes(query.toLowerCase()));
   return <>
  <div className="announcement"><span>Soft copies first. Hard copies delivered across Lagos.</span><a href="#how-it-works">See how it works <ArrowRight size={12} /></a></div>
- <header className="header"><div className="container header-inner"><BrandLogo /><nav aria-label="Main navigation"><a href="#services">Our services</a><a href="#how-it-works">How it works</a><button onClick={() => open('fleet')}>For organizations</button></nav><div className="header-actions"><button className="cart-button" onClick={checkout} aria-label={`Open order, ${selected.length} documents`}><ShoppingCart size={21} strokeWidth={1.5} /><span>{selected.length}</span></button><button className="button button-small desktop-start" onClick={scrollServices}>Get started <ArrowUpRight size={15} /></button><button className="menu-button" onClick={() => setMenu(true)} aria-label="Open menu"><Menu /></button></div></div></header>
+ <header className="header"><div className="container header-inner"><BrandLogo /><nav aria-label="Main navigation"><a href="#services">Our services</a><a href="#how-it-works">How it works</a><button onClick={() => open('fleet')}>For organizations</button><Link href="/service-documents">Service Documents</Link></nav><div className="header-actions"><button className="cart-button" onClick={checkout} aria-label={`Open order, ${selected.length} documents`}><ShoppingCart size={21} strokeWidth={1.5} /><span>{selected.length}</span></button><button className="button button-small desktop-start" onClick={scrollServices}>Get started <ArrowUpRight size={15} /></button><button className="menu-button" onClick={() => setMenu(true)} aria-label="Open menu"><Menu /></button></div></div></header>
  <main>
  <section className="container hero" aria-label="Vehicle documents made simple">
   <div className="hero-main">
@@ -635,7 +678,7 @@ export default function Platform() {
  <section className="container faq-section"><div className="faq-intro"><div className="eyebrow">GOOD QUESTIONS. STRAIGHT ANSWERS.</div><h2>A few things<br />you might be wondering.</h2><p>Need a hand with something else? We’re happy to help.</p><button className="text-link" onClick={() => open('support')}>Talk to our team <ArrowUpRight size={16} /></button></div><div className="faq-list">{faq.map(([question, answer], i) => <div className={'faq-item ' + (faqOpen === i ? 'open' : '')} key={question}><button aria-expanded={faqOpen === i} aria-controls={`faq-${i}`} onClick={() => setFaqOpen(faqOpen === i ? null : i)}>{question}{faqOpen === i ? <Minus size={18} /> : <Plus size={18} />}</button><div id={`faq-${i}`} hidden={faqOpen !== i}><p>{answer}</p></div></div>)}</div></section>
  <div className="container final-cta"><div><span className="eyebrow">LET’S GET YOU ROAD-READY</span><h2>Your next journey starts here.</h2></div><button className="button" onClick={scrollServices}>Sort my documents <ArrowUpRight size={17} /></button></div>
  </main>
- <footer><div className="container footer-main"><div><BrandLogo footer /><p>A little less paperwork.<br />A little more peace of mind.</p></div><div className="footer-links"><a href="#services">Our services</a><a href="#how-it-works">How it works</a><button onClick={() => open('fleet')}>For organizations</button></div><div className="footer-links"><button onClick={() => open('track')}>Track your order</button><button onClick={() => open('support')}>Get support</button><span><MapPin size={13} /> Lagos, Nigeria</span></div></div><div className="container footer-bottom"><span>© {new Date().getFullYear()} SureWay Compliance. All rights reserved.</span><span>Made for the road ahead. <ArrowUpRight size={12} /></span></div></footer>
+ <footer><div className="container footer-main"><div><BrandLogo footer /><p>A little less paperwork.<br />A little more peace of mind.</p></div><div className="footer-links"><a href="#services">Our services</a><a href="#how-it-works">How it works</a><button onClick={() => open('fleet')}>For organizations</button></div><div className="footer-links"><button onClick={() => open('track')}>Track your order</button><button onClick={() => open('support')}>Get support</button>{serviceDocumentLinks}<span><MapPin size={13} /> Lagos, Nigeria</span></div></div><div className="container footer-bottom"><span>© {new Date().getFullYear()} SureWay Compliance. All rights reserved.</span><span>Made for the road ahead. <ArrowUpRight size={12} /></span></div></footer>
  <button className="chat-button" onClick={() => open('support')} aria-label="Get help"><MessageCircle size={24} /><span className="chat-notification" /></button>
  {toast && <div className="toast" role="status"><CircleHelp size={18} />{toast}<button onClick={() => setToast('')} aria-label="Dismiss"><X size={16} /></button></div>}
  {demo && <div className="preview-badge"><span className="status-dot" /> Preview mode <span>·</span> No live payments</div>}
@@ -645,7 +688,7 @@ export default function Platform() {
           }}><FileText size={18} /> Vehicle renewals <small>Essentials</small></button><button onClick={() => {
             setCategory('Permits');
             scrollServices();
-          }}><Check size={18} /> Permits & certificates</button><button onClick={() => open('registration')}><Plus size={18} /> New vehicle registration</button></div><button onClick={scrollServices}>All services <ArrowUpRight size={16} /></button><a href="#how-it-works" onClick={() => setMenu(false)}>How it works <ArrowUpRight size={16} /></a><button onClick={() => open('fleet')}>For organizations <ArrowUpRight size={16} /></button><button onClick={() => open('track')}>Track your order <ArrowUpRight size={16} /></button><button onClick={() => open('support')}>Get support <ArrowUpRight size={16} /></button><button className="button" onClick={() => open('support')}>Talk to our team <ArrowRight size={17} /></button></div></div>}
+          }}><Check size={18} /> Permits & certificates</button><button onClick={() => open('registration')}><Plus size={18} /> New vehicle registration</button></div><button onClick={scrollServices}>All services <ArrowUpRight size={16} /></button><Link href="/service-documents" onClick={() => setMenu(false)}>Service Documents <ArrowUpRight size={16} /></Link><a href="#how-it-works" onClick={() => setMenu(false)}>How it works <ArrowUpRight size={16} /></a><button onClick={() => open('fleet')}>For organizations <ArrowUpRight size={16} /></button><button onClick={() => open('track')}>Track your order <ArrowUpRight size={16} /></button><button onClick={() => open('support')}>Get support <ArrowUpRight size={16} /></button><button className="button" onClick={() => open('support')}>Talk to our team <ArrowRight size={17} /></button></div></div>}
  {panel && <div className="modal-backdrop" onClick={() => !busy && setPanel(null)}><section className={'modal ' + (panel === 'checkout' ? 'checkout-modal' : '')} role="dialog" aria-modal="true" aria-labelledby="modal-title" onClick={e => e.stopPropagation()}><div className="modal-top"><ModalLogo /><button ref={closeRef} onClick={() => setPanel(null)} disabled={busy} aria-label="Close dialog"><X size={22} /></button></div>
  {success ? <div className="success-panel"><h2 id="modal-title" className="modal-heading">
   <span className="success-icon" aria-hidden="true"><CheckCheck size={34} /></span>
@@ -764,7 +807,16 @@ export default function Platform() {
  </> : panel === 'track' ? <><h2 id="modal-title" className="modal-heading">
   <span className="modal-feature-icon" aria-hidden="true"><PackageCheck size={26} /></span>
   A quick check on your order.
- </h2><p className="modal-description">Enter the reference and email you used when ordering.</p><form onSubmit={track} className="stacked-form"><label>Order reference<input name="reference" required placeholder="SW-…" autoComplete="off" /></label><label>Email address<input name="email" type="email" required placeholder="you@example.com" /></label><button className="button" disabled={busy}>{busy ? <LoaderCircle size={18} className="spin" /> : <Search size={17} />} Find my order</button></form>{trackResult && <div className="tracking-result"><span className="tracking-status"><span className="status-dot" />{statusLabels[String(trackResult.status)] || 'Received'}</span><h3>{String(trackResult.reference)}</h3><p>{String(trackResult.make)} · {String(trackResult.plate)}</p><b>{money(Number(trackResult.total), true)}</b><div className="tracking-timeline">{['paid', 'processing', 'soft_copies_ready', 'completed'].map((status, i) => <div key={status} className={['paid', 'processing', 'soft_copies_ready', 'ready_for_collection', 'out_for_delivery', 'completed'].indexOf(String(trackResult.status)) >= ['paid', 'processing', 'soft_copies_ready', 'ready_for_collection', 'out_for_delivery', 'completed'].indexOf(status) ? 'done' : ''}><span>{i + 1}</span>{statusLabels[status]}</div>)}</div>{Array.isArray(trackResult.documents) && trackResult.documents.map((doc: {
+ </h2><p className="modal-description">Enter the reference and email you used when ordering.</p><form onSubmit={track} className="stacked-form"><label>Order reference<input name="reference" required placeholder="SW-…" autoComplete="off" /></label><label>Email address<input name="email" type="email" required placeholder="you@example.com" /></label><button className="button" disabled={busy}>{busy ? <LoaderCircle size={18} className="spin" /> : <Search size={17} />} Find my order</button></form>{trackResult && <div className="tracking-result"><span className="tracking-status"><span className="status-dot" />{statusLabels[String(trackResult.status)] || 'Received'}</span><h3>{String(trackResult.reference)}</h3><p>{String(trackResult.make)} · {String(trackResult.plate)}</p><b>{money(Number(trackResult.total), true)}</b>{trackResult.status !== 'cancelled' && <div className="tracking-timeline">{['paid', 'processing', 'soft_copies_ready', 'completed'].map((status, i) => <div key={status} className={['paid', 'processing', 'soft_copies_ready', 'ready_for_collection', 'out_for_delivery', 'completed'].indexOf(String(trackResult.status)) >= ['paid', 'processing', 'soft_copies_ready', 'ready_for_collection', 'out_for_delivery', 'completed'].indexOf(status) ? 'done' : ''}><span>{i + 1}</span>{statusLabels[status]}</div>)}</div>}
+  {typeof trackResult.refundStatus === 'string' && <p>{refundLabels[trackResult.refundStatus]}</p>}
+  {cancellableUntil && <div className="tracking-cancel">
+    {confirmCancellation ? <>
+      <p>Cancel this order? If you paid, SureWay will review the payment for a refund.</p>
+      <button className="button" type="button" disabled={busy} onClick={cancelOrder}>Confirm cancellation</button>
+      <button className="text-link" type="button" disabled={busy} onClick={() => setConfirmCancellation(false)}>Keep order</button>
+    </> : <button className="text-link" type="button" disabled={busy} onClick={() => setConfirmCancellation(true)}>Cancel order</button>}
+  </div>}
+  {Array.isArray(trackResult.documents) && trackResult.documents.map((doc: {
               name: string;
               url: string;
             }, i: number) => <a key={i} className="document-download" href={doc.url} target="_blank" rel="noreferrer"><Download size={16} />{doc.name}</a>)}</div>}{demo && <p className="modal-footnote">Preview orders are available only in the browser where they were created.</p>}</> : <><h2 id="modal-title" className="modal-heading">

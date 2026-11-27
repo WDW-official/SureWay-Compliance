@@ -153,6 +153,7 @@ export const money = (amount: number, decimals = false) => new Intl.NumberFormat
 }).format(amount);
 export const statuses = ['payment_pending', 'paid', 'processing', 'soft_copies_ready', 'ready_for_collection', 'out_for_delivery', 'completed'] as const;
 export const statusLabels: Record<string, string> = {
+  cancelled: 'Cancelled',
   payment_pending: 'Awaiting payment',
   paid: 'Payment received',
   processing: 'In progress',
